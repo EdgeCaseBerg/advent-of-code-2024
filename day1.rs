@@ -52,6 +52,14 @@ struct InputData {
 }
 
 impl InputData {
+	fn new() -> InputData {
+		return InputData {
+			left: Vec::new(),
+			right: Vec::new(),
+			count_by_right_location: HashMap::new()
+		}
+	}
+
 	fn add_to_left(&mut self, id: LocationID) {
 		self.left.push(id);
 	}
@@ -131,11 +139,7 @@ fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 	match fs::read_to_string(filename) {
 		Err(_) => Err(DataError::CouldNotFindFile(filename.to_string())),
 		Ok(contents) => {
-			let mut input_data = InputData {
-				left:  Vec::new(),
-				right:  Vec::new(),
-				left_similitary_memo: HashMap::new()
-			};
+			let mut input_data = InputData::new();
 			
 			let mut line: String = String::new();
 			for c in contents.chars() {
