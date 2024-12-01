@@ -86,13 +86,9 @@ impl InputData {
 		let mut similarity = 0;
 		for left_idx in 0..self.left.len() {
 			let left_value: LocationID = self.left[left_idx];
-			match self.count_by_right_location.get(&left_value) {
-				Some(scalar) => {
-					similarity += left_value.id * scalar;
-				},
-				None => {}
-			}
-			
+			similarity += self.count_by_right_location.get(&left_value)
+				.map(|scalar| left_value.id * scalar)
+				.unwrap_or(0)			
 		}
 		return similarity
 	}
