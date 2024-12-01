@@ -58,10 +58,10 @@ impl InputData {
 		right_copy.sort();
 
 		let mut similarity = 0;
-		for left_idx in 0..1000 {
+		for left_idx in 0..left_copy.len() {
 			let left_value = left_copy[left_idx];
 			let mut scalar = 0;
-			for right_idx in 0..1000 {
+			for right_idx in 0..right_copy.len() {
 				if left_value == right_copy[right_idx] {
 					scalar += 1;
 				}
