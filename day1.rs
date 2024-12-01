@@ -48,7 +48,7 @@ impl LocationID {
 struct InputData {
 	left: Vec<LocationID>,
 	right: Vec<LocationID>,
-	left_similitary_memo: HashMap<LocationID, i32>
+	count_by_right_location: HashMap<LocationID, i32>
 }
 
 impl InputData {
@@ -58,7 +58,7 @@ impl InputData {
 
 	fn add_to_right(&mut self, id: LocationID) {
 		self.right.push(id);
-		self.left_similitary_memo.entry(id).and_modify(|count| { *count += 1 }).or_insert(1);
+		self.count_by_right_location.entry(id).and_modify(|count| { *count += 1 }).or_insert(1);
 	}
 
 	fn total_distance(&self) -> i32 {
@@ -83,7 +83,7 @@ impl InputData {
 		let mut similarity = 0;
 		for left_idx in 0..left_copy.len() {
 			let left_value: LocationID = left_copy[left_idx];
-			match self.left_similitary_memo.get(&left_value) {
+			match self.count_by_right_location.get(&left_value) {
 				Some(scalar) => {
 					similarity += left_value.id * scalar;
 				},
