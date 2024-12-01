@@ -117,7 +117,6 @@ fn get_filename_from_args() -> Result<String, DataError> {
 	let mut arguments = arguments.iter();
 	arguments.next(); // skip the name of the program being ran
 	let maybe_filename = arguments.next();
-
 	match maybe_filename {
 		Some(filename) => {
 			if path::Path::new(filename).exists() {
@@ -136,7 +135,6 @@ fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 		Err(_) => Err(DataError::CouldNotFindFile(filename.to_string())),
 		Ok(contents) => {
 			let mut input_data = InputData::new();
-			
 			let mut line: String = String::new();
 			for c in contents.chars() {
 				if c != ' ' && c != '\r' && c != '\n' {
