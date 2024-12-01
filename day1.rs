@@ -83,14 +83,9 @@ impl InputData {
 	}
 
 	fn similarity(&self) -> i32 {
-		let mut left_copy = self.left.clone();
-		left_copy.sort();
-		let mut right_copy = self.right.clone();
-		right_copy.sort();
-
 		let mut similarity = 0;
-		for left_idx in 0..left_copy.len() {
-			let left_value: LocationID = left_copy[left_idx];
+		for left_idx in 0..self.left.len() {
+			let left_value: LocationID = self.left[left_idx];
 			match self.count_by_right_location.get(&left_value) {
 				Some(scalar) => {
 					similarity += left_value.id * scalar;
