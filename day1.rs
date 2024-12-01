@@ -45,7 +45,8 @@ impl InputData {
 		let mut right_copy = self.right.clone();
 		right_copy.sort();
 		let mut distance = 0;
-		for idx in 0..1000 { // TODO unhardcode this.
+		assert!(left_copy.len() == right_copy.len());
+		for idx in 0..left_copy.len() {
 			distance += (left_copy[idx] - right_copy[idx]).abs();
 		}
 		return distance
