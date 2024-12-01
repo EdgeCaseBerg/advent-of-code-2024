@@ -1,6 +1,7 @@
 use std::fs;
 use std::path;
 use std::env;
+use std::collections::HashMap;
 
 fn main() {
 	let input = get_filename_from_args()
@@ -27,19 +28,40 @@ fn main() {
 		Ok(data) => data
 	};
 
-	println!("{:?}", data.distance());
+	println!("{:?}", data.total_distance());
 	println!("{:?}", data.similarity());
+}
+
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Copy)]
+struct LocationID {
+	id: i32
+}
+
+impl LocationID {
+	fn distance(&self, other: &LocationID) -> i32 {
+		return (self.id - other.id).abs();
+	}
 }
 
 
 #[derive(Debug)]
 struct InputData {
-	left: Vec<i32>,
-	right: Vec<i32>
+	left: Vec<LocationID>,
+	right: Vec<LocationID>,
+	left_similitary_memo: HashMap<LocationID, i32>
 }
 
 impl InputData {
-	fn distance(&self) -> i32 {
+	fn add_to_left(&mut self, id: LocationID) {
+		self.left.push(id);
+	}
+
+	fn add_to_right(&mut self, id: LocationID) {
+		self.right.push(id);
+		self.left_similitary_memo.entry(id).and_modify(|count| { *count += 1 }).or_insert(1);
+	}
+
+	fn total_distance(&self) -> i32 {
 		let mut left_copy = self.left.clone();
 		left_copy.sort();
 		let mut right_copy = self.right.clone();
@@ -47,7 +69,7 @@ impl InputData {
 		let mut distance = 0;
 		assert!(left_copy.len() == right_copy.len());
 		for idx in 0..left_copy.len() {
-			distance += (left_copy[idx] - right_copy[idx]).abs();
+			distance += left_copy[idx].distance(&right_copy[idx]);
 		}
 		return distance
 	}
@@ -60,14 +82,14 @@ impl InputData {
 
 		let mut similarity = 0;
 		for left_idx in 0..left_copy.len() {
-			let left_value = left_copy[left_idx];
-			let mut scalar = 0;
-			for right_idx in 0..right_copy.len() {
-				if left_value == right_copy[right_idx] {
-					scalar += 1;
-				}
+			let left_value: LocationID = left_copy[left_idx];
+			match self.left_similitary_memo.get(&left_value) {
+				Some(scalar) => {
+					similarity += left_value.id * scalar;
+				},
+				None => {}
 			}
-			similarity += left_value * scalar;
+			
 		}
 		return similarity
 	}
@@ -107,10 +129,14 @@ fn get_filename_from_args() -> Result<String, DataError> {
 
 fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 	match fs::read_to_string(filename) {
+		Err(_) => Err(DataError::CouldNotFindFile(filename.to_string())),
 		Ok(contents) => {
-			let mut left_data = Vec::new();
-			let mut right_data = Vec::new();
-
+			let mut input_data = InputData {
+				left:  Vec::new(),
+				right:  Vec::new(),
+				left_similitary_memo: HashMap::new()
+			};
+			
 			let mut line: String = String::new();
 			for c in contents.chars() {
 				if c != ' ' && c != '\r' && c != '\n' {
@@ -119,39 +145,30 @@ fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 					if line.is_empty() {
 						continue;
 					}
-
-					// time to parse.
 					let is_left = c == ' ';
 					if is_left {
-						let value: i32 = match line.parse() {
-							Ok(good) => good,
-							Err(_) => { // it'd be nice if we make our invalid data return what the invalid data was
+						let value = match line.parse() {
+							Ok(good) => LocationID { id: good },
+							Err(_) => {
 								return Err(DataError::InvalidLeftData(line))
 							}
 						};
-						left_data.push(value);
+						input_data.add_to_left(value);
 						line.clear();
 					} else if c == '\n' {
-						let value: i32 = match line.parse() {
-							Ok(good) => good,
+						let value = match line.parse() {
+							Ok(good) => LocationID { id: good },
 							Err(_) => {
 								return Err(DataError::InvalidRightData(line))
 							}
 						};
-						right_data.push(value);
+						input_data.add_to_right(value);
 						line.clear();
 					}
 				}
 			}
 
-			Ok(InputData {
-				left: left_data,
-				right: right_data
-			})
-		},
-		Err(error) => {
-			println!("{:?}", error);
-			Err(DataError::CouldNotFindFile(filename.to_string()))
+			Ok(input_data)
 		}
 	}
 }
