@@ -38,6 +38,12 @@ struct LocationID {
 }
 
 impl LocationID {
+	fn new(id: i32) -> LocationID {
+		return LocationID {
+			id: id
+		}
+	}
+
 	fn distance(self, other: LocationID) -> i32 {
 		return (self.id - other.id).abs();
 	}
@@ -142,7 +148,7 @@ fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 					let is_left = c == ' ';
 					if is_left {
 						let value = match line.parse() {
-							Ok(good) => LocationID { id: good },
+							Ok(good) => LocationID::new(good),
 							Err(_) => {
 								return Err(DataError::InvalidLeftData(line))
 							}
@@ -151,7 +157,7 @@ fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 						line.clear();
 					} else if c == '\n' {
 						let value = match line.parse() {
-							Ok(good) => LocationID { id: good },
+							Ok(good) => LocationID::new(good),
 							Err(_) => {
 								return Err(DataError::InvalidRightData(line))
 							}
