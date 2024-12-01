@@ -76,12 +76,15 @@ impl InputData {
 	}
 
 	fn total_distance(&self) -> i32 {
+		assert!(self.left.len() == self.right.len());
+
 		let mut left_copy = self.left.clone();
-		left_copy.sort();
 		let mut right_copy = self.right.clone();
-		right_copy.sort();
 		let mut distance = 0;
-		assert!(left_copy.len() == right_copy.len());
+
+		left_copy.sort();
+		right_copy.sort();
+
 		for idx in 0..left_copy.len() {
 			distance += left_copy[idx].distance(right_copy[idx]);
 		}
