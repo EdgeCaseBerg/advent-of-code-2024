@@ -38,7 +38,7 @@ struct LocationID {
 }
 
 impl LocationID {
-	fn distance(&self, other: &LocationID) -> i32 {
+	fn distance(self, other: LocationID) -> i32 {
 		return (self.id - other.id).abs();
 	}
 }
@@ -77,7 +77,7 @@ impl InputData {
 		let mut distance = 0;
 		assert!(left_copy.len() == right_copy.len());
 		for idx in 0..left_copy.len() {
-			distance += left_copy[idx].distance(&right_copy[idx]);
+			distance += left_copy[idx].distance(right_copy[idx]);
 		}
 		return distance
 	}
