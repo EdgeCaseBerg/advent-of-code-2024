@@ -45,7 +45,7 @@ impl LocationID {
 		}
 	}
 
-	fn distance(self, other: LocationID) -> i32 {
+	fn distance(self, other: &LocationID) -> i32 {
 		return (self.id - other.id).abs();
 	}
 }
@@ -71,9 +71,9 @@ impl InputData {
 		self.left.push(*id);
 	}
 
-	fn add_to_right(&mut self, id: LocationID) {
-		self.right.push(id);
-		self.count_by_right_location.entry(id).and_modify(|count| { *count += 1 }).or_insert(1);
+	fn add_to_right(&mut self, id: &LocationID) {
+		self.right.push(*id);
+		self.count_by_right_location.entry(*id).and_modify(|count| { *count += 1 }).or_insert(1);
 	}
 
 	fn total_distance(&self) -> i32 {
@@ -87,7 +87,7 @@ impl InputData {
 		right_copy.sort();
 
 		for idx in 0..left_copy.len() {
-			distance += left_copy[idx].distance(right_copy[idx]);
+			distance += left_copy[idx].distance(&right_copy[idx]);
 		}
 		return distance
 	}
@@ -164,7 +164,7 @@ fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 								return Err(DataError::InvalidRightData(line))
 							}
 						};
-						input_data.add_to_right(value);
+						input_data.add_to_right(&value);
 						line.clear();
 					}
 				}
