@@ -4,9 +4,31 @@ fn main() {
 	for report in &reports {
 		if is_report_safe(&report) {
 			num_safe_reports += 1;
+		} else {
+			let mut can_tolerate = false;
+			for foo in &permute_report(&report) {
+				can_tolerate = can_tolerate || is_report_safe(&foo);
+			}
+			if can_tolerate {
+				num_safe_reports += 1;
+			}
 		}
 	}
+	// Not 1273
 	println!("{:?}", num_safe_reports);
+}
+
+fn permute_report(report: &Vec<i32>) -> Vec<Vec<i32>> {
+	let mut permutations = Vec::new();
+	permutations.push(report.clone());
+	for idx in 0..report.len() {
+		let mut clone = report.clone();
+		clone.remove(idx);
+		permutations.push(clone);
+	}
+	// println!("Original {:?}", report);
+	// println!("Permutations {:?}", permutations);
+	return permutations;
 }
 
 fn is_report_safe(report: &Vec<i32>) -> bool {
