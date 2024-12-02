@@ -67,8 +67,8 @@ impl InputData {
 		}
 	}
 
-	fn add_to_left(&mut self, id: LocationID) {
-		self.left.push(id);
+	fn add_to_left(&mut self, id: &LocationID) {
+		self.left.push(*id);
 	}
 
 	fn add_to_right(&mut self, id: LocationID) {
@@ -155,7 +155,7 @@ fn load_data_from_file(filename: &String) -> Result<InputData, DataError> {
 								return Err(DataError::InvalidLeftData(line))
 							}
 						};
-						input_data.add_to_left(value);
+						input_data.add_to_left(&value);
 						line.clear();
 					} else if c == '\n' {
 						let value = match line.parse() {
