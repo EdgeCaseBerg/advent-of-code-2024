@@ -4,7 +4,8 @@ use std::env;
 use std::collections::HashMap;
 
 fn main() {
-	let input = get_filename_from_args()
+	let input = 
+		get_filename_from_args()
 		.and_then(|filename| load_data_from_file(&filename));
 
 	let data = match input {
