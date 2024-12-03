@@ -1,5 +1,23 @@
+use std::path;
+use std::fs;
+use std::env;
+
 fn main() {
-	let reports = get_reports();
+	let reports = match get_reports() {
+		Err(DataError::CannotParseLine(bad_line)) => {
+			println!("Bad line {:?}", bad_line);
+			return;
+		}
+		Err(DataError::CouldNotFindFile(filename)) => {
+			println!("Bad file {:?}", filename);
+			return;
+		}
+		Err(DataError::NoInputDataGiven) => {
+			println!("No data given, pass an argument");
+			return;
+		}
+		Ok(reports) => reports
+	};
 	let mut num_safe_reports = 0;
 	for report in &reports {
 		if is_report_safe(&report) {
@@ -44,16 +62,64 @@ fn is_report_safe(report: &Vec<i32>) -> bool {
 		differences.push(difference);
 	}
 
-	let is_within_range = differences.clone().into_iter().map(|d| d.abs()).all(|diff| diff > 0 && diff < 4);
-	let is_increasing_across_all = differences.clone().into_iter().all(|diff| diff < 0);
-	let is_decreasing_across_all = differences.clone().into_iter().all(|diff| diff > 0);
+	let is_within_range = differences.clone().iter().map(|d| d.abs()).all(|diff| diff > 0 && diff < 4);
+	let is_increasing_across_all = differences.clone().iter().all(|diff| *diff < 0);
+	let is_decreasing_across_all = differences.clone().iter().all(|diff| *diff > 0);
 
 	return is_within_range && (is_decreasing_across_all || is_increasing_across_all);
 }
 
 
-fn get_reports() -> Vec<Vec<i32>>{
-	return Vec::from([
-		Vec::from([74,76,78,79,76])
-	])
+fn get_reports() -> Result<Vec<Vec<i32>>, DataError>{
+	match get_filename_from_args() {
+		Err(problem) => Err(problem),
+		Ok(filename) => parse(&filename)
+	}
+}
+
+#[derive(Debug)]
+enum DataError {
+	NoInputDataGiven,
+	CouldNotFindFile(String),
+	CannotParseLine(String),
+}
+
+fn parse(filename: &String) -> Result<Vec<Vec<i32>>, DataError> {
+	match fs::read_to_string(filename) {
+		Err(_) => Err(DataError::CouldNotFindFile(filename.to_string())),
+		Ok(raw_data) => {
+			let mut reports = Vec::new();
+			let lines: Vec<&str> = raw_data.split("\r\n").collect();
+			for line in lines {
+				let report: Result<Vec<i32>, DataError> = line
+					.split(' ')
+					.map(|s| s.parse::<i32>().map_err(|_| DataError::CannotParseLine(line.to_string())))
+					.collect();
+				reports.push(report?);
+			}
+			return Ok(reports);
+		}
+	}
+}
+
+fn get_filename_from_args() -> Result<String, DataError> {
+	let arguments: Vec<String> = env::args().collect();
+	if arguments.is_empty() {
+		print!("{:?}", "pass the input data as the first argument.");
+		return Err(DataError::NoInputDataGiven)
+	}
+
+	let mut arguments = arguments.iter();
+	arguments.next(); // skip the name of the program being ran
+	let maybe_filename = arguments.next();
+	match maybe_filename {
+		Some(filename) => {
+			if path::Path::new(filename).exists() {
+				Ok(filename.to_string())
+			} else {
+				Err(DataError::CouldNotFindFile(filename.to_string()))
+			}
+		},
+		None => Err(DataError::NoInputDataGiven)
+	}
 }
