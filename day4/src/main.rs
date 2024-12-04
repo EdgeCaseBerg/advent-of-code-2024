@@ -151,7 +151,6 @@ fn count_matches_p1(lines: &[String], needle: &str) -> usize {
 }
 
 // 96416 is NOT the answer
-// 2 4 5 4 is part 1
-// 1 8 5 8 is part 2
+
 
 
