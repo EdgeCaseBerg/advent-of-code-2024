@@ -85,11 +85,12 @@ enum DataError {
 }
 
 fn parse(filename: &String) -> Result<Vec<Vec<i32>>, DataError> {
+	let newline = "\r\n";
 	match fs::read_to_string(filename) {
 		Err(_) => Err(DataError::CouldNotFindFile(filename.to_string())),
 		Ok(raw_data) => {
 			let mut reports = Vec::new();
-			let lines: Vec<&str> = raw_data.split("\r\n").collect();
+			let lines: Vec<&str> = raw_data.split(newline).collect();
 			for line in lines {
 				let report: Result<Vec<i32>, DataError> = line
 					.split(' ')
