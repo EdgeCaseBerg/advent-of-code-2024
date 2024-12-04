@@ -18,10 +18,11 @@ fn main() {
 
 	
 	let mut answer = 0;
+	let mut enabled = true;
 	// let mut statement = String::new();
 	let mut tokens: VecDeque<SingleToken> = data.into_iter().map(|c| SingleToken::new(c)).collect();
 	// let commands: Vec<SingleToken> = Vec::new();
-	for idx in 0..tokens.len() {
+	for _ in 0..tokens.len() {
 		let maybe_token = tokens.pop_front();
 		if maybe_token.is_none() {
 			continue;
@@ -32,15 +33,33 @@ fn main() {
 			SingleToken::HasMeaning(c) => {
 				match c {
 					'm' => {
-						tokens.push_front(SingleToken::new(c));
-						match attempt_m_parse(&tokens, idx) {
-							Ok((fst, snd)) => answer += fst * snd,
+						tokens.push_front(SingleToken::new(c)); // add m in for parsing
+						match attempt_m_parse(&tokens) {
+							Ok((fst, snd)) => {
+								if enabled {
+									println!("mul({:?},{:?})", fst, snd);
+									answer += fst * snd
+								}
+							}
 							_ => {}
 						}
-						tokens.pop_front();
+						tokens.pop_front(); // remove the m again 
 					}
 					'd' => {
-						// attempt_d_parse(data, idx);
+						tokens.push_front(SingleToken::new(c)); // add d in for parsing
+						match attempt_d_parse(&tokens) {
+							None => {}
+							Some(enable) => {
+								if (enable) {
+									println!("do()");
+								} else {
+									println!("don't()");
+								}
+								enabled = enable;
+								enabled = true;
+							}
+						};
+						tokens.pop_front(); // remove the token again
 					}
 					_ => {}// this token is actually meaningless
 				}
@@ -51,13 +70,40 @@ fn main() {
 	println!("{:?}", answer);
 }
 
-fn attempt_m_parse(data: &VecDeque<SingleToken>, idx: usize) -> Result<(i32, i32), &str> {
+fn attempt_d_parse(data: &VecDeque<SingleToken>) -> Option<bool> {
+	let potental_do = data.iter().take("do()".len()).fold(String::new(), |mut a, t| {
+		a.push(t.value());
+		a
+	});
+	let potental_do = potental_do.as_str();
+	let potental_dont = data.iter().take("don't()".len()).fold(String::new(), |mut a, t| {
+		a.push(t.value());
+		a
+	});
+	let potental_dont = potental_dont.as_str();
+	let enable = match potental_do {
+		"do()" => true,
+		_ => false
+	};
+
+	let disable = match potental_dont {
+		"don't()" => true,
+		_ => false
+	};
+
+	match (enable, disable) {
+		(true, false) => Some(true),
+		(false, true) => Some(false),
+		(false, false) => None,
+		(true, true) => None
+	}
+}
+
+fn attempt_m_parse(data: &VecDeque<SingleToken>) -> Result<(i32, i32), &str> {
 	let mut potential: Vec<&SingleToken> = data.iter().take(12).collect();
 	if !potential.iter().all(|t| t.has_meaning()) {
 		return Err("Lacks meaning");
 	}
-
-	println!("There is meaning {:?} {:?}", potential, idx);
 
 	for _ in 0.."mul(".len() {
 		potential.remove(0);
@@ -100,33 +146,41 @@ fn attempt_m_parse(data: &VecDeque<SingleToken>, idx: usize) -> Result<(i32, i32
 	}
 
 	let mut second_number_tokens = 0;
-	let second_number_str = potential.take_while(|token| match token {
-		SingleToken::Meaningless => false,
-		SingleToken::HasMeaning(digit) => digit.is_numeric()
-	}).fold(String::new(), |mut accum, token| match token {
-		SingleToken::Meaningless => accum,
-		SingleToken::HasMeaning(digit) => {
-			second_number_tokens += 1;
-			accum.push(*digit);
-			accum
-		},
-	});
+	let mut second_number_str = String::new();
+	loop {
+		let maybe_token = potential.next();
+		if maybe_token.is_none() {
+			break;
+		}
+
+		current_token = maybe_token.unwrap();
+
+		let valid_token = match current_token {
+			SingleToken::Meaningless => {
+				false
+			},
+			SingleToken::HasMeaning(digit) => digit.is_numeric()
+		};
+		if !valid_token {
+			break;
+		}
+		second_number_tokens += 1;
+		second_number_str.push(current_token.value());
+	}
+
+	if second_number_tokens > 3 || second_number_tokens == 0 {
+		return Err("digit does not match constraints");
+	}
 
 	match first_number_str.parse() {
 		Ok(fst) => {
 			match second_number_str.parse() {
 				Ok(snd) => Ok((fst, snd)),
-				other => Err("Cant parse second number")
+				_ => Err("Cant parse second number")
 			}
 		},
 		_ => Err("Cant parse first number")
 	}
-}
-
-enum RealData {
-	Mul(i32, i32),
-	Do,
-	Dont,
 }
 
 #[derive(Debug)]
@@ -160,7 +214,7 @@ impl SingleToken {
 
 }
 
-// 
+// 190604937
 // 82857512
 
 #[derive(Debug)]
