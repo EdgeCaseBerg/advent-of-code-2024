@@ -1,84 +1,102 @@
 use std::fs;
 
-
 fn main() {
-    let raw_data = fs::read_to_string("small_input_day_4.txt").expect("bad input data");
-    // let raw_data = fs::read_to_string("../../input-day-4.txt").expect("bad input data");
+    let raw_data = fs::read_to_string("../../input-day-4.txt").expect("bad input data");
     let needle = "XMAS";
 
-    // Break the string up into a box
-    let matrix: Vec<Vec<String>> = raw_data
+    // Parse the matrix
+    let matrix: Vec<Vec<char>> = raw_data
         .lines()
         .filter(|line| !line.is_empty())
-        .map(|line| {
-            line.chars().map(|s| {
-                if needle.contains(s) {
-                    s.to_string()
-                } else {
-                    " ".to_string()
-                }
-            }).collect()
-        })
+        .map(|line| line.chars().collect())
         .collect();
 
-    let mut going_forward: Vec<String> = Vec::new();
-    let mut going_backwards: Vec<String> = Vec::new();
-    let mut going_down: Vec<String> = Vec::new();
-    let mut going_up: Vec<String> = Vec::new();
-    let mut going_diagonial: Vec<String> = Vec::new();
+    let mut going_forward = vec![];
+    let mut going_backwards = vec![];
+    let mut going_down = vec![];
+    let mut going_up = vec![];
+    let mut going_diagonal = vec![];
 
-    for y in 0..matrix.len() {
-        let line = &matrix[y];
-        going_forward.push(line.clone().into_iter().collect());
-        going_backwards.push(line.clone().into_iter().rev().collect());
-        for x in 0..line.len() {
-            // downwards
-            if y == 0 {
-                let mut downwards = String::new();
-                for y2 in 0..matrix.len() {
-                    downwards.push_str(&matrix[y2][x]);
-                }
-                going_down.push(downwards.clone());
-                going_up.push(downwards.clone().chars().rev().collect());
-            }
-        }
+    let rows = matrix.len();
+    let cols = if rows > 0 { matrix[0].len() } else { 0 };
+
+    // Horizontal directions (forward and backward)
+    for row in &matrix {
+        let line: String = row.iter().collect();
+        going_forward.push(line.clone());
+        going_backwards.push(line.chars().rev().collect());
     }
 
-    // Diagonals confuse my brain, do them separately.
-    for y in 0..matrix.len() {
-        if y != 0 {
-            continue;
+    // Vertical directions (down and up)
+    for col in 0..cols {
+        let mut downwards = String::new();
+        for row in 0..rows {
+            downwards.push(matrix[row][col]);
         }
-        let line = &matrix[0];
-        for x in 0..line.len() {
-            // diag is tricky ish
-            let mut diag = String::new();
-            for offset in 0..matrix.len() {
-                if y + offset < matrix.len() && x + offset < line.len() {
-                    diag.push_str(&matrix[y + offset][x + offset]);
-                }
-            }
-            going_diagonial.push(diag.clone());
-            going_diagonial.push(diag.clone().chars().rev().collect());
-        }
+        going_down.push(downwards.clone());
+        going_up.push(downwards.chars().rev().collect());
     }
 
+    // Diagonal directions
+    for start_row in 0..rows {
+        // Down-right diagonal from left column
+        let mut diag = String::new();
+        let mut offset = 0;
+        while start_row + offset < rows && offset < cols {
+            diag.push(matrix[start_row + offset][offset]);
+            offset += 1;
+        }
+        going_diagonal.push(diag.clone());
+        going_diagonal.push(diag.chars().rev().collect());
+    }
 
+    for start_col in 1..cols {
+        // Down-right diagonal from top row
+        let mut diag = String::new();
+        let mut offset = 0;
+        while offset < rows && start_col + offset < cols {
+            diag.push(matrix[offset][start_col + offset]);
+            offset += 1;
+        }
+        going_diagonal.push(diag.clone());
+        going_diagonal.push(diag.chars().rev().collect());
+    }
 
-    println!("{:?}", going_diagonial);
+    for start_row in 0..rows {
+        // Down-left diagonal from right column
+        let mut diag = String::new();
+        let mut offset = 0;
+        while start_row + offset < rows && cols as isize - 1 - offset as isize >= 0 {
+            diag.push(matrix[start_row + offset][(cols as isize - 1 - offset as isize) as usize]);
+            offset += 1;
+        }
+        going_diagonal.push(diag.clone());
+        going_diagonal.push(diag.chars().rev().collect());
+    }
 
+    for start_col in (0..cols - 1).rev() {
+        // Down-left diagonal from top row
+        let mut diag = String::new();
+        let mut offset = 0;
+        while offset < rows && start_col as isize - offset as isize >= 0 {
+            diag.push(matrix[offset][(start_col as isize - offset as isize) as usize]);
+            offset += 1;
+        }
+        going_diagonal.push(diag.clone());
+        going_diagonal.push(diag.chars().rev().collect());
+    }
+
+    // Count occurrences of the needle
     let mut counts = 0;
-    counts += going_forward.iter().fold(0, |a, hay| a + hay.matches(needle).count());
-    println!("going_forward {:?}", going_forward.iter().fold(0, |a, hay| a + hay.matches(needle).count()));
-    counts += going_backwards.iter().fold(0, |a, hay| a + hay.matches(needle).count());
-    println!("going_backwards {:?}", going_backwards.iter().fold(0, |a, hay| a + hay.matches(needle).count()));
-    counts += going_down.iter().fold(0, |a, hay| a + hay.matches(needle).count());
-    println!("going_down {:?}", going_down.iter().fold(0, |a, hay| a + hay.matches(needle).count()));
-    counts += going_up.iter().fold(0, |a, hay| a + hay.matches(needle).count());
-    println!("going_up {:?}", going_up.iter().fold(0, |a, hay| a + hay.matches(needle).count()));
-    counts += going_diagonial.iter().fold(0, |a, hay| a + hay.matches(needle).count());
-    println!("going_diagonial {:?}", going_diagonial.iter().fold(0, |a, hay| a + hay.matches(needle).count()));
+    counts += count_matches(&going_forward, needle);
+    counts += count_matches(&going_backwards, needle);
+    counts += count_matches(&going_down, needle);
+    counts += count_matches(&going_up, needle);
+    counts += count_matches(&going_diagonal, needle);
 
-    // 96416 is NOT the answer
-    println!("{:?}", counts);
+    println!("Total matches for '{}': {}", needle, counts);
+}
+
+fn count_matches(lines: &[String], needle: &str) -> usize {
+    lines.iter().map(|line| line.match_indices(needle).count()).sum()
 }
