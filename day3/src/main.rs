@@ -20,7 +20,6 @@ fn main() {
     for (_, [capture]) in r.captures_iter(&data.as_str()).map(|c| c.extract()) {
         tokens.push(capture);
     }
-    println!("{:?}", tokens);
     let mut answer = 0;
     let mut enabled = true;
     for token in tokens {

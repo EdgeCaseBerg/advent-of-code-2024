@@ -31,30 +31,31 @@ fn main() {
 			SingleToken::HasMeaning(c) => {
 				match c {
 					'm' => {
-						tokens.push_front(SingleToken::new(c)); // add m in for parsing
-						match attempt_m_parse(&tokens) {
-							Ok((fst, snd)) => {
-								if enabled {
+						if enabled {
+							tokens.push_front(SingleToken::new(c)); // add m in for parsing
+							match attempt_m_parse(&tokens) {
+								Ok((fst, snd)) => {								
 									println!("mul({:?},{:?})", fst, snd);
 									answer += fst * snd
 								}
+								Err(error) => {
+									println!("{:?} {:?}", error, tokens.iter().take_while(|t| t.has_meaning()).map(|t| t.value()).collect::<Vec<_>>());
+								}
 							}
-							_ => {}
+							tokens.pop_front(); // remove the m again 
 						}
-						tokens.pop_front(); // remove the m again 
 					}
 					'd' => {
 						tokens.push_front(SingleToken::new(c)); // add d in for parsing
 						match attempt_d_parse(&tokens) {
 							None => {}
 							Some(enable) => {
-								if (enable) {
+								if enable {
 									println!("do()");
 								} else {
 									println!("don't()");
 								}
 								enabled = enable;
-								enabled = true;
 							}
 						};
 						tokens.pop_front(); // remove the token again
@@ -64,7 +65,6 @@ fn main() {
 			}
 		}
 	}
-	answer += 1;
 	println!("{:?}", answer);
 }
 
@@ -98,13 +98,26 @@ fn attempt_d_parse(data: &VecDeque<SingleToken>) -> Option<bool> {
 }
 
 fn attempt_m_parse(data: &VecDeque<SingleToken>) -> Result<(i32, i32), &str> {
-	let mut potential: Vec<&SingleToken> = data.iter().take(12).collect();
+	let mut potential: Vec<&SingleToken> = data.iter().take(12).take_while(|t| match t {
+		SingleToken::Meaningless => false,
+		SingleToken::HasMeaning(c) => *c != ')'
+	}).collect();
 	if !potential.iter().all(|t| t.has_meaning()) {
+		println!("{:?}", potential);
 		return Err("Lacks meaning");
 	}
 
-	for _ in 0.."mul(".len() {
-		potential.remove(0);
+	if potential.len() < 4 {
+		println!("{:?}", potential);
+		return Err("Not enough tokens")
+	}
+
+	let s = String::from("mul(");
+	for c in s.chars() {
+		let t = potential.remove(0);
+		if t.value() != c {
+			return Err("mul prefix not found");
+		}
 	}
 	let mut potential = potential.into_iter();
 
@@ -123,6 +136,7 @@ fn attempt_m_parse(data: &VecDeque<SingleToken>) -> Result<(i32, i32), &str> {
 			SingleToken::Meaningless => {
 				false
 			},
+			SingleToken::HasMeaning(',') => break,
 			SingleToken::HasMeaning(digit) => digit.is_numeric()
 		};
 		if !valid_token {
@@ -133,12 +147,14 @@ fn attempt_m_parse(data: &VecDeque<SingleToken>) -> Result<(i32, i32), &str> {
 	}
 
 	if number_of_first_tokens > 3 || number_of_first_tokens == 0 {
+		println!("{:?}", first_number_str);
 		return Err("digit does not match constraints");
 	}
 
 	match current_token {
 		SingleToken::HasMeaning(',') => {},
 		_ => {
+			println!("{:?}", current_token);
 			return Err("comma not found between digits");
 		}
 	}
@@ -166,11 +182,8 @@ fn attempt_m_parse(data: &VecDeque<SingleToken>) -> Result<(i32, i32), &str> {
 		second_number_str.push(current_token.value());
 	}
 
-	if current_token.value() != ')' {
-		return Err("Did not end in paren");
-	}
-
 	if second_number_tokens > 3 || second_number_tokens == 0 {
+		println!("{:?}", second_number_str);
 		return Err("digit does not match constraints");
 	}
 
