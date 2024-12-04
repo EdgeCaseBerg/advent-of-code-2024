@@ -19,13 +19,11 @@ fn main() {
 	
 	let mut answer = 0;
 	let mut enabled = true;
-	// let mut statement = String::new();
 	let mut tokens: VecDeque<SingleToken> = data.into_iter().map(|c| SingleToken::new(c)).collect();
-	// let commands: Vec<SingleToken> = Vec::new();
-	for _ in 0..tokens.len() {
+	loop {
 		let maybe_token = tokens.pop_front();
 		if maybe_token.is_none() {
-			continue;
+			break;
 		}
 
 		match maybe_token.unwrap() {
@@ -166,6 +164,10 @@ fn attempt_m_parse(data: &VecDeque<SingleToken>) -> Result<(i32, i32), &str> {
 		}
 		second_number_tokens += 1;
 		second_number_str.push(current_token.value());
+	}
+
+	if current_token.value() != ')' {
+		return Err("Did not end in paren");
 	}
 
 	if second_number_tokens > 3 || second_number_tokens == 0 {
