@@ -115,6 +115,7 @@ fn part_1() {
         // Down-left diagonal from right column
         let mut diag = String::new();
         let mut offset = 0;
+        // note: we can go negative with these offsets, so we have to convert to isize first for those calcs
         while start_row + offset < rows && cols as isize - 1 - offset as isize >= 0 {
             diag.push(matrix[start_row + offset][(cols as isize - 1 - offset as isize) as usize]);
             offset += 1;
