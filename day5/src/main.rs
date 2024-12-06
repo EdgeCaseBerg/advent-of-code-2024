@@ -37,7 +37,7 @@ struct Report {
 }
 
 impl Report {
-    fn is_valid_according_to(&self, ordering: &Vec<(i32, i32)>) -> bool {
+    fn is_valid_according_to(&self, ordering: &[(i32, i32)]) -> bool {
         let mut valid = true;
         for idx in 0..self.data.len() {
             let report = self.data[idx];
@@ -60,7 +60,7 @@ impl Report {
         self.data[mid]
     }
 
-    fn re_order_according_to(&self, ordering: &Vec<(i32, i32)>) -> Report {
+    fn re_order_according_to(&self, ordering: &[(i32, i32)]) -> Report {
         let mut new_data = self.data.clone();
         new_data.sort_by(|a,b| {
             for (before, after) in ordering.iter() {
@@ -70,13 +70,13 @@ impl Report {
                     return Ordering::Greater
                 }
             }
-            return Ordering::Equal;
+            Ordering::Equal
         });
-        return Report { data: new_data.clone() };
+        Report { data: new_data.clone() }
     }
 }
 
-fn build_reports(raw_data: &String) -> Vec<Report> {
+fn build_reports(raw_data: &str) -> Vec<Report> {
     let mut reports: Vec<Report> = Vec::new();
     let mut past_rules = false;
     for line in raw_data.lines() {
@@ -93,10 +93,10 @@ fn build_reports(raw_data: &String) -> Vec<Report> {
         }).collect();
         reports.push(Report { data: report });
     }
-    return reports;
+    reports
 }
 
-fn build_ordering(raw_data: &String) -> Vec<(i32, i32)> {
+fn build_ordering(raw_data: &str) -> Vec<(i32, i32)> {
     let ordering: Vec<(&str, &str)> = raw_data
         .lines()
         .take_while(|line| !line.is_empty())
