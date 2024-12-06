@@ -1,8 +1,12 @@
 use std::fs;
 
 fn main() {
-    let raw_data = fs::read_to_string("../input.txt").expect("bad input data");
+    let raw_data = fs::read_to_string("../sample.txt").expect("bad input data");
     let raw_data = raw_data.as_str();
+
+    // Uncomment this to generate anim.txt file input
+    // generate_animation_txt(raw_data);
+    // but comment out the rest below when you generate it
     
     let (matrix, rows, cols) = make_matrix(raw_data);
     let mut elven_mischief_possible = 0;
@@ -16,15 +20,31 @@ fn main() {
             fiddle[row][col] = '#';
             match watch_guard_or_cycle(fiddle, rows, cols) {
                 None => elven_mischief_possible += 1,
-                Some(wait_time) => println!("Position ({}, {}) lets the guard leave in {:?} steps", row, col, wait_time),
+                Some(wait_time) => {} // println!("Position ({}, {}) lets the guard leave in {:?} steps", row, col, wait_time),
             }
         }
     }
     println!("Elven mischief possible {}", elven_mischief_possible);
 }
 
+fn generate_animation_txt(raw_data: &str) {
+    let (mut matrix, rows, cols) = make_matrix(raw_data);
+    watch_guard_or_cycle(matrix, rows, cols, true);
+}
+
+fn print_matrix(matrix: &Vec<Vec<char>>, rows: usize, cols: usize) {
+    let mut string = String::new();
+    for row in 0..rows {
+        for col in 0..cols {
+            string.push(matrix[row][col]);
+        }
+        string.push_str("\n");
+    }
+    println!("{}", string);
+}
+
 // Return None if cycle, number of steps to leave otherwise.
-fn watch_guard_or_cycle(mut matrix: Vec<Vec<char>>, rows: usize, cols: usize) -> Option<i32> {
+fn watch_guard_or_cycle(mut matrix: Vec<Vec<char>>, rows: usize, cols: usize, print_step: bool) -> Option<i32> {
     let visited_marker = 'X';
     let floor = '.';
     let mut guard_position = (0, 0);
@@ -40,6 +60,9 @@ fn watch_guard_or_cycle(mut matrix: Vec<Vec<char>>, rows: usize, cols: usize) ->
     let mut obstacles_hit_count = init_cycle_detector(rows, cols);
 
     loop {
+        if print_step {
+            print_matrix(&matrix, rows, cols);
+        }
         if guard_has_left(rows, cols, guard_position) {
             break;
         }
@@ -63,7 +86,6 @@ fn watch_guard_or_cycle(mut matrix: Vec<Vec<char>>, rows: usize, cols: usize) ->
             if obstacles_hit_count[newRow][newCol].iter().any(|d| d.is_self(&direction)) {
                 // cycle! We walked into the same obstacle in the same direction!
                 // Note it's okay to walk into it from a different direction though.
-                println!("cycle!");
                 return None;
             }
 
