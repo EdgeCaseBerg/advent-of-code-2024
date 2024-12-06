@@ -43,6 +43,27 @@ fn print_matrix(matrix: &Vec<Vec<char>>, rows: usize, cols: usize) {
     println!("{}", string);
 }
 
+fn print_centered_view(grid: &Vec<Vec<char>>, x: usize, y: usize, n: usize) {
+    let rows = grid.len();
+    let cols = grid[0].len();
+
+    let half_n = n / 2;
+
+    // Calculate the start and end indices for rows and columns, clamping to valid ranges.
+    let row_start = x.saturating_sub(half_n);
+    let row_end = (x.saturating_add(half_n + 1)).min(rows);
+    let col_start = y.saturating_sub(half_n);
+    let col_end = (y.saturating_add(half_n + 1)).min(cols);
+
+    for row in row_start..row_end {
+        for col in col_start..col_end {
+            print!("{}", grid[row][col]);
+        }
+        println!();
+    }
+    println!()
+}
+
 // Return None if cycle, number of steps to leave otherwise.
 fn watch_guard_or_cycle(mut matrix: Vec<Vec<char>>, rows: usize, cols: usize, print_step: bool) -> Option<i32> {
     let visited_marker = 'X';
@@ -61,7 +82,7 @@ fn watch_guard_or_cycle(mut matrix: Vec<Vec<char>>, rows: usize, cols: usize, pr
 
     loop {
         if print_step {
-            print_matrix(&matrix, rows, cols);
+            print_centered_view(&matrix, guard_position.0, guard_position.1, 20);
         }
         if guard_has_left(rows, cols, guard_position) {
             break;
