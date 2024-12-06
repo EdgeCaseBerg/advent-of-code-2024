@@ -7,12 +7,11 @@ fn main() {
     
     let lines = raw_data.lines();
 
-    let delay_between_frames = time::Duration::from_millis(100);
+    let delay_between_frames = time::Duration::from_millis(42);
 
     let mut buffer = String::new();
     for line in lines {
         if line.is_empty() {
-            // std::process::Command::new("clear").status().unwrap();
             print!("\x1B[2J\x1B[H");
             print!("{}", buffer);
             std::io::Write::flush(&mut std::io::stdout()).unwrap();
