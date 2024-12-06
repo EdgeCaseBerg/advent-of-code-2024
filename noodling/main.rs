@@ -48,6 +48,17 @@ fn is_digit_radix10(c: char) -> bool {
 	c.is_digit(10)
 }
 
+fn parse_do(tokens: &[SingleToken]) -> Option<Command> {
+	CompoundToken::matches(tokens, "do()").lift().map(|_| {
+		Command::Do
+	})
+}
+
+fn parse_dont(tokens: &[SingleToken]) -> Option<Command> {
+	CompoundToken::matches(tokens, "don't()").lift().map(|_| {
+		Command::Dont
+	})
+}
 
 fn parse_m(tokens: &[SingleToken]) -> Option<Command> {
 	CompoundToken::matches(tokens, "mul(").lift().and_then(|_| {
