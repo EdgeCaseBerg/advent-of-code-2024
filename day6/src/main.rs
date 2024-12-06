@@ -18,7 +18,7 @@ fn main() {
             // Mark a spot as an obstacle
             let mut fiddle = matrix.clone();
             fiddle[row][col] = '#';
-            match watch_guard_or_cycle(fiddle, rows, cols) {
+            match watch_guard_or_cycle(fiddle, rows, cols, false) {
                 None => elven_mischief_possible += 1,
                 Some(wait_time) => {} // println!("Position ({}, {}) lets the guard leave in {:?} steps", row, col, wait_time),
             }
