@@ -3,11 +3,30 @@ use std::fs;
 fn main() {
     let raw_data = fs::read_to_string("../input.txt").expect("bad input data");
     let raw_data = raw_data.as_str();
+    
+    let (matrix, rows, cols) = make_matrix(raw_data);
+    let mut elven_mischief_possible = 0;
+    for row in 0..rows {
+        for col in 0..cols {
+            if is_guard(&matrix[row][col]) {
+                continue;
+            }
+            // Mark a spot as an obstacle
+            let mut fiddle = matrix.clone();
+            fiddle[row][col] = '#';
+            match watch_guard_or_cycle(fiddle, rows, cols) {
+                None => elven_mischief_possible += 1,
+                Some(wait_time) => println!("Position ({}, {}) lets the guard leave in {:?} steps", row, col, wait_time),
+            }
+        }
+    }
+    println!("Elven mischief possible {}", elven_mischief_possible);
+}
+
+// Return None if cycle, number of steps to leave otherwise.
+fn watch_guard_or_cycle(mut matrix: Vec<Vec<char>>, rows: usize, cols: usize) -> Option<i32> {
     let visited_marker = 'X';
     let floor = '.';
-
-    let (mut matrix, rows, cols) = make_matrix(raw_data);
-
     let mut guard_position = (0, 0);
     for row in 0..rows {
         for col in 0..cols {
@@ -16,9 +35,10 @@ fn main() {
             }
         }
     }
-    println!("start pos {:?}", guard_position);
 
     let mut path_marked = matrix.clone();
+    let mut obstacles_hit_count = init_cycle_detector(rows, cols);
+
     loop {
         if guard_has_left(rows, cols, guard_position) {
             break;
@@ -28,10 +48,9 @@ fn main() {
         let (newRow, newCol) = match direction {
             Direction::Left => (guard_position.0, (guard_position.1 as isize - 1) as usize),
             Direction::Right => (guard_position.0, guard_position.1 + 1),
-            Direction::Up => (guard_position.0 - 1, guard_position.1),
+            Direction::Up => ((guard_position.0 as isize - 1) as usize, guard_position.1),
             Direction::Down => (guard_position.0 + 1, guard_position.1),
         };
-        println!("{:?} {}", newRow, newCol);
 
         if guard_has_left(rows, cols, (newRow, newCol)) {
             path_marked[guard_position.0][guard_position.1] = visited_marker;
@@ -41,6 +60,14 @@ fn main() {
         }
 
         if is_obstacle(&matrix[newRow][newCol]) {
+            if obstacles_hit_count[newRow][newCol].iter().any(|d| d.is_self(&direction)) {
+                // cycle! We walked into the same obstacle in the same direction!
+                // Note it's okay to walk into it from a different direction though.
+                println!("cycle!");
+                return None;
+            }
+
+            obstacles_hit_count[newRow][newCol].push(direction.clone());
             matrix[guard_position.0][guard_position.1] = direction.turn_right();
             continue;
         }
@@ -52,7 +79,6 @@ fn main() {
         matrix[guard_position.0][guard_position.1] = direction.to_char();
     }
 
-    println!("{:?}", path_marked);
     let mut distinct_positions_count = 0;
     for row in 0..rows {
         for col in 0..cols {
@@ -62,10 +88,11 @@ fn main() {
         }
     }
 
-    println!("Distinct Positions {:?}", distinct_positions_count);
+    Some(distinct_positions_count)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+#[derive(PartialEq, Eq)]
 enum Direction {
     Up, Down, Left, Right
 }
@@ -77,7 +104,7 @@ impl Direction {
             '<' => return Some(Direction::Left),
             'v' => return Some(Direction::Down),
             '^' => return Some(Direction::Up),
-            other => return None,
+            _ => return None,
         }
     }
     fn turn_right(&self) -> char {
@@ -89,6 +116,10 @@ impl Direction {
         }
     }
 
+    fn is_self(&self, other: &Direction) -> bool {
+        self == other
+    }
+
     fn to_char(&self) -> char {
         match self {
             Direction::Right => '>',
@@ -97,6 +128,17 @@ impl Direction {
             Direction::Up => '^',
         }
     }
+}
+
+fn init_cycle_detector(rows: usize, cols: usize) -> Vec<Vec<Vec<Direction>>> {
+    let mut matrix = Vec::new();
+    for r in 0..rows {
+        matrix.push(Vec::new());
+        for _ in 0..cols { 
+            matrix[r].push(Vec::new())
+        }
+    }
+    matrix
 }
 
 fn is_obstacle(c: &char) -> bool {
