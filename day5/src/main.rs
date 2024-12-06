@@ -1,4 +1,5 @@
 use std::fs;
+use std::cmp::Ordering;
 
 fn main() {
     let raw_data = fs::read_to_string("../input.txt").expect("bad input data");
@@ -61,40 +62,17 @@ impl Report {
 
     fn re_order_according_to(&self, ordering: &Vec<(i32, i32)>) -> Report {
         let mut new_data = self.data.clone();
-        let mut idx = 0;
-        let mut new_report = Report { data: new_data.clone() };
-
-        loop {
-            if new_report.is_valid_according_to(ordering) {
-                break
-            }
-            for idx in 0..new_data.len() {
-                let report = new_data[idx];
-                let must_appear_after: Vec<i32> = ordering.iter().filter(|o| o.0 == report).map(|o| o.1).collect();
-                let report_position = new_data.iter().position(|&r| r == report).expect("This exists");
-                let mut should_be_to_the_right_positions: Vec<usize> = must_appear_after.iter().map(|o| {
-                    new_data.iter().position(|&r| r == *o)
-                }).filter(|p| p.is_some()).map(|p| {
-                    p.unwrap()
-                }).collect();
-                should_be_to_the_right_positions.sort();
-
-                if should_be_to_the_right_positions.is_empty() {
-                    // There are no rules for this report, so skip ahead.
-                    continue;
+        new_data.sort_by(|a,b| {
+            for (before, after) in ordering.iter() {
+                if a == before && b == after {
+                    return Ordering::Less
+                } else if b == before && a == after {
+                    return Ordering::Greater
                 }
-                let smallest = should_be_to_the_right_positions[0];
-                new_data.remove(report_position);
-                new_data.insert(smallest, report);
             }
-
-            idx += 1;
-            if idx == new_data.len() {
-                idx = 0;
-            }
-            new_report = Report { data: new_data.clone() };
-        }
-        new_report
+            return Ordering::Equal;
+        });
+        return Report { data: new_data.clone() };
     }
 }
 
