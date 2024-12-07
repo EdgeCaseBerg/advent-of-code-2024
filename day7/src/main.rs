@@ -7,9 +7,11 @@ fn main() {
     let mut calibrations: Vec<Calibration> = raw_data.lines().map(|line| {
         Calibration::from(line)
     }).collect();
+
+    let mut permutation_cache = HashMap::new();
     
     let total_values_from_valid_calibrations = calibrations.iter_mut().fold(0, |accum, calibration| {
-        let operator_combinations: Vec<VecDeque<Operand>> = calibration.get_operator_combinations();
+        let operator_combinations: Vec<VecDeque<Operand>> = calibration.get_operator_combinations(&mut permutation_cache);
         let mut has_valid = false;
         for operators in operator_combinations {
             has_valid = has_valid || calibration.is_valid_with(operators);
@@ -31,16 +33,14 @@ fn main() {
 #[derive(Debug, Clone)]
 struct Calibration {
     result: u64,
-    numbers: Vec<u64>,
-    permutation_cache: HashMap<usize, Vec<VecDeque<Operand>>>
+    numbers: Vec<u64>
 }
 
 impl Calibration {
     fn new(result: u64, numbers: Vec<u64>) -> Calibration {
         Calibration {
             result,
-            numbers,
-            permutation_cache: HashMap::new()
+            numbers
         }
     }
 
@@ -68,14 +68,14 @@ impl Calibration {
         self.result == left
     }
 
-    fn get_operator_combinations(&mut self) -> Vec<VecDeque<Operand>> {
+    fn get_operator_combinations(&mut self, permutation_cache: &mut HashMap<usize, Vec<VecDeque<Operand>>>) -> Vec<VecDeque<Operand>> {
         let operators_needed = self.numbers.len() - 1;
-        if self.permutation_cache.contains_key(&operators_needed) {
-            return self.permutation_cache.get(&operators_needed).unwrap().to_vec();
+        if permutation_cache.contains_key(&operators_needed) {
+            return permutation_cache.get(&operators_needed).unwrap().to_vec();
         }
 
         let combinations = generate_combinations(&[Operand::Concat, Operand::Plus, Operand::Multiply], operators_needed);
-        self.permutation_cache.insert(operators_needed, combinations.clone());
+        permutation_cache.insert(operators_needed, combinations.clone());
         return combinations
         /* 
             My function is _slow_, it takes 26s to figure out the answer
