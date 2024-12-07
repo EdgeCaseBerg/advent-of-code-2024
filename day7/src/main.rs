@@ -7,10 +7,8 @@ fn main() {
         Calibration::from(line)
     }).collect();
     
-    println!("{:?}", calibrations);
-
     let total_values_from_valid_calibrations = calibrations.iter().fold(0, |accum, calibration| {
-        let operator_combinations: Vec<VecDeque<Operand>> = get_operator_combinations(&calibration);
+        let operator_combinations: Vec<VecDeque<Operand>> = get_operator_combinations(calibration);
         let mut has_valid = false;
         for operators in operator_combinations {
             has_valid = has_valid || calibration.is_valid_with(operators);
@@ -41,13 +39,12 @@ impl Calibration {
             n.parse().unwrap()
         }).collect();
         Calibration {
-            result: result,
-            numbers: numbers
+            result,
+            numbers
         }
     }
 
     fn is_valid_with(&self, mut operands: VecDeque<Operand>) -> bool {
-        // println!("{:?} {:?}", self, operands.as_slices());
         if self.numbers.is_empty() || operands.is_empty() {
             return false
         }
@@ -59,7 +56,7 @@ impl Calibration {
             let operator = operands.pop_front().unwrap(); 
             left = operator.apply(&left, &right);
         }
-        return self.result == left;
+        self.result == left
     }
 }
 
@@ -67,6 +64,7 @@ impl Calibration {
 enum Operand {
     Plus,
     Multiply,
+    Concat,
 }
 
 impl Operand {
@@ -74,27 +72,25 @@ impl Operand {
         match self {
             Operand::Plus => left + right,
             Operand::Multiply => left * right,
+            Operand::Concat => (left.to_string() + &right.to_string()).parse().unwrap()
         }
     }
 }
 
 fn get_operator_combinations(calibration: &Calibration) -> Vec<VecDeque<Operand>> {
     let operators_needed = calibration.numbers.len() - 1;
-    let operators = Vec::from([Operand::Plus, Operand::Multiply]);
-
-
-    let r = generate_combinations(&['+', '*'], operators_needed).into_iter().map(|string| {
+    generate_combinations(&['+', '*', '|'], operators_needed).into_iter().map(|string| {
         let mut combo = VecDeque::new();
         for c in string.chars() {
             let op = match c {
                 '+' => Operand::Plus,
+                '|' => Operand::Concat,
                 _ => Operand::Multiply,
             };
             combo.push_back(op)
         }
         combo
-    }).collect::<Vec<VecDeque<Operand>>>();
-    r
+    }).collect::<Vec<VecDeque<Operand>>>()
 }
 
 fn generate_combinations(symbols: &[char], n: usize) -> Vec<String> {
