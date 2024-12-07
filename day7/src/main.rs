@@ -60,7 +60,7 @@ impl Calibration {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum Operand {
     Plus,
     Multiply,
@@ -79,30 +79,39 @@ impl Operand {
 
 fn get_operator_combinations(calibration: &Calibration) -> Vec<VecDeque<Operand>> {
     let operators_needed = calibration.numbers.len() - 1;
-    generate_combinations(&['+', '*', '|'], operators_needed).into_iter().map(|string| {
-        let mut combo = VecDeque::new();
-        for c in string.chars() {
-            let op = match c {
-                '+' => Operand::Plus,
-                '|' => Operand::Concat,
-                _ => Operand::Multiply,
-            };
-            combo.push_back(op)
+    generate_combinations(&[Operand::Concat, Operand::Plus, Operand::Multiply], operators_needed)
+    /* 
+        My function is _slow_, it takes 26s to figure out the answer
+        If I swap to the below code to do the permutation work, then it goes to 9s
+        use itertools::Itertools;
+        let o = vec![Operand::Multiply, Operand::Plus, Operand::Concat];
+    let f: Vec<Vec<Operand>> = itertools::repeat_n(o, operators_needed).multi_cartesian_product().collect();
+    f.iter().map(|v| {
+        let mut vdq = VecDeque::new();
+        for o in v.iter() {
+            vdq.push_back(*o);
         }
-        combo
-    }).collect::<Vec<VecDeque<Operand>>>()
+        vdq
+    } ).collect()
+     */
 }
 
-fn generate_combinations(symbols: &[char], n: usize) -> Vec<String> {
+fn generate_combinations(symbols: &[Operand], n: usize) -> Vec<VecDeque<Operand>> {
+    // return nothing to add,
+    // when n = 1 this will end up with [Operand]
+    // when n = 2 this will have [Operand, Operand]
+    // n = 1 will vary between the different operands, so by concatenating
+    // the bits together, we can build up the different combos.
     if n == 0 {
-        return vec![String::new()];
+        return vec![VecDeque::new()];
     }
 
     let mut result = Vec::new();
     for symbol in symbols {
         let sub_combinations = generate_combinations(symbols, n - 1);
-        for sub in sub_combinations {
-            result.push(format!("{}{}", symbol, sub));
+        for mut sub in sub_combinations {
+            sub.push_front(*symbol);
+            result.push(sub);
         }
     }
 
