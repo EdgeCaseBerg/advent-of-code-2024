@@ -1,14 +1,15 @@
 use std::fs;
 use std::collections::VecDeque;
+use std::collections::HashMap;
 
 fn main() {
     let raw_data = fs::read_to_string("./input.txt").expect("bad input data");
-    let calibrations: Vec<Calibration> = raw_data.lines().map(|line| {
+    let mut calibrations: Vec<Calibration> = raw_data.lines().map(|line| {
         Calibration::from(line)
     }).collect();
     
-    let total_values_from_valid_calibrations = calibrations.iter().fold(0, |accum, calibration| {
-        let operator_combinations: Vec<VecDeque<Operand>> = get_operator_combinations(calibration);
+    let total_values_from_valid_calibrations = calibrations.iter_mut().fold(0, |accum, calibration| {
+        let operator_combinations: Vec<VecDeque<Operand>> = calibration.get_operator_combinations();
         let mut has_valid = false;
         for operators in operator_combinations {
             has_valid = has_valid || calibration.is_valid_with(operators);
@@ -22,26 +23,34 @@ fn main() {
     });
     println!("{:?}", total_values_from_valid_calibrations);
     // sample should be 3749
-
+    // not 57229 ???
+    //  yes 1289579105366
+    //  yes 92148721834692
 }
 
 #[derive(Debug, Clone)]
 struct Calibration {
     result: u64,
-    numbers: Vec<u64>
+    numbers: Vec<u64>,
+    permutation_cache: HashMap<usize, Vec<VecDeque<Operand>>>
 }
 
 impl Calibration {
+    fn new(result: u64, numbers: Vec<u64>) -> Calibration {
+        Calibration {
+            result,
+            numbers,
+            permutation_cache: HashMap::new()
+        }
+    }
+
     fn from(line: &str) -> Calibration {
         let mut iter = line.split(":");
         let result = iter.next().unwrap().parse().unwrap();
         let numbers = iter.next().unwrap().split(" ").filter(|s| !s.is_empty()).map(|n| {
             n.parse().unwrap()
         }).collect();
-        Calibration {
-            result,
-            numbers
-        }
+        Calibration::new(result, numbers)
     }
 
     fn is_valid_with(&self, mut operands: VecDeque<Operand>) -> bool {
@@ -57,6 +66,31 @@ impl Calibration {
             left = operator.apply(&left, &right);
         }
         self.result == left
+    }
+
+    fn get_operator_combinations(&mut self) -> Vec<VecDeque<Operand>> {
+        let operators_needed = self.numbers.len() - 1;
+        if self.permutation_cache.contains_key(&operators_needed) {
+            return self.permutation_cache.get(&operators_needed).unwrap().to_vec();
+        }
+
+        let combinations = generate_combinations(&[Operand::Concat, Operand::Plus, Operand::Multiply], operators_needed);
+        self.permutation_cache.insert(operators_needed, combinations.clone());
+        return combinations
+        /* 
+            My function is _slow_, it takes 26s to figure out the answer
+            If I swap to the below code to do the permutation work, then it goes to 9s
+            use itertools::Itertools;
+            let o = vec![Operand::Multiply, Operand::Plus, Operand::Concat];
+        let f: Vec<Vec<Operand>> = itertools::repeat_n(o, operators_needed).multi_cartesian_product().collect();
+        f.iter().map(|v| {
+            let mut vdq = VecDeque::new();
+            for o in v.iter() {
+                vdq.push_back(*o);
+            }
+            vdq
+        } ).collect()
+         */
     }
 }
 
@@ -75,25 +109,6 @@ impl Operand {
             Operand::Concat => (left.to_string() + &right.to_string()).parse().unwrap()
         }
     }
-}
-
-fn get_operator_combinations(calibration: &Calibration) -> Vec<VecDeque<Operand>> {
-    let operators_needed = calibration.numbers.len() - 1;
-    generate_combinations(&[Operand::Concat, Operand::Plus, Operand::Multiply], operators_needed)
-    /* 
-        My function is _slow_, it takes 26s to figure out the answer
-        If I swap to the below code to do the permutation work, then it goes to 9s
-        use itertools::Itertools;
-        let o = vec![Operand::Multiply, Operand::Plus, Operand::Concat];
-    let f: Vec<Vec<Operand>> = itertools::repeat_n(o, operators_needed).multi_cartesian_product().collect();
-    f.iter().map(|v| {
-        let mut vdq = VecDeque::new();
-        for o in v.iter() {
-            vdq.push_back(*o);
-        }
-        vdq
-    } ).collect()
-     */
 }
 
 fn generate_combinations(symbols: &[Operand], n: usize) -> Vec<VecDeque<Operand>> {
