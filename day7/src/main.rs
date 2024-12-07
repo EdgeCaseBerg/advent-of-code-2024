@@ -1,6 +1,7 @@
 use std::fs;
 use std::collections::VecDeque;
 use std::collections::HashMap;
+use itertools::Itertools;
 
 fn main() {
     let raw_data = fs::read_to_string("./input.txt").expect("bad input data");
@@ -74,23 +75,17 @@ impl Calibration {
             return permutation_cache.get(&operators_needed).unwrap().to_vec();
         }
 
-        let combinations = generate_combinations(&[Operand::Concat, Operand::Plus, Operand::Multiply], operators_needed);
-        permutation_cache.insert(operators_needed, combinations.clone());
-        return combinations
-        /* 
-            My function is _slow_, it takes 26s to figure out the answer
-            If I swap to the below code to do the permutation work, then it goes to 9s
-            use itertools::Itertools;
-            let o = vec![Operand::Multiply, Operand::Plus, Operand::Concat];
+        let o = vec![Operand::Multiply, Operand::Plus, Operand::Concat];
         let f: Vec<Vec<Operand>> = itertools::repeat_n(o, operators_needed).multi_cartesian_product().collect();
-        f.iter().map(|v| {
+        let combinations: Vec<VecDeque<Operand>> = f.iter().map(|v| {
             let mut vdq = VecDeque::new();
             for o in v.iter() {
                 vdq.push_back(*o);
             }
             vdq
-        } ).collect()
-         */
+        } ).collect();
+        permutation_cache.insert(operators_needed, combinations.clone());
+        combinations
     }
 }
 
@@ -111,24 +106,30 @@ impl Operand {
     }
 }
 
-fn generate_combinations(symbols: &[Operand], n: usize) -> Vec<VecDeque<Operand>> {
-    // return nothing to add,
-    // when n = 1 this will end up with [Operand]
-    // when n = 2 this will have [Operand, Operand]
-    // n = 1 will vary between the different operands, so by concatenating
-    // the bits together, we can build up the different combos.
-    if n == 0 {
-        return vec![VecDeque::new()];
-    }
 
-    let mut result = Vec::new();
-    for symbol in symbols {
-        let sub_combinations = generate_combinations(symbols, n - 1);
-        for mut sub in sub_combinations {
-            sub.push_front(*symbol);
-            result.push(sub);
-        }
-    }
 
-    result
-}
+// let combinations = generate_combinations(&[Operand::Concat, Operand::Plus, Operand::Multiply], operators_needed);
+// permutation_cache.insert(operators_needed, combinations.clone());
+// return combinations
+        
+// fn generate_combinations(symbols: &[Operand], n: usize) -> Vec<VecDeque<Operand>> {
+//     // return nothing to add,
+//     // when n = 1 this will end up with [Operand]
+//     // when n = 2 this will have [Operand, Operand]
+//     // n = 1 will vary between the different operands, so by concatenating
+//     // the bits together, we can build up the different combos.
+//     if n == 0 {
+//         return vec![VecDeque::new()];
+//     }
+
+//     let mut result = Vec::new();
+//     for symbol in symbols {
+//         let sub_combinations = generate_combinations(symbols, n - 1);
+//         for mut sub in sub_combinations {
+//             sub.push_front(*symbol);
+//             result.push(sub);
+//         }
+//     }
+
+//     result
+// }

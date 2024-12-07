@@ -5,3 +5,6 @@ edition = "2021"
 
 [profile.release]
 debug = true
+
+[dependencies]
+itertools = "0.13.0"
