@@ -10,7 +10,6 @@ fn main() {
     for row in antinodes {
         for maybe_node in row {
             if maybe_node.is_some() {
-               // print!("{:?} ", maybe_node);
                print!("#");
                count_of_antinodes += 1;
             } else {
@@ -21,7 +20,6 @@ fn main() {
     }
     // your answer it too low:  221, 344
     // your answer is too high: 456
-    // correct, 376, 1352
     println!("{:?}", count_of_antinodes);
 }
 
