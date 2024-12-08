@@ -11,11 +11,13 @@ fn main() {
         for maybe_node in row {
             if maybe_node.is_some() {
                // print!("{:?} ", maybe_node);
+               count_of_antinodes += 1;
             }
-            count_of_antinodes += maybe_node.map(|node| node.size()).unwrap_or(0);
+            
         }
         // println!("")
     }
+    // your answer it too low:  221
     // your answer is too high: 456
     println!("{:?}", count_of_antinodes);
 }
