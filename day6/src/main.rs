@@ -51,9 +51,18 @@ fn print_centered_view(grid: &Vec<Vec<char>>, x: usize, y: usize, n: usize) {
 
     // Calculate the start and end indices for rows and columns, clamping to valid ranges.
     let row_start = x.saturating_sub(half_n);
-    let row_end = (x.saturating_add(half_n + 1)).min(rows);
+    let mut row_padding = 0;
+    if x < half_n {
+        row_padding = half_n - x;
+    }
+    let row_end = (x.saturating_add(half_n + 1 + row_padding)).min(rows);
+
     let col_start = y.saturating_sub(half_n);
-    let col_end = (y.saturating_add(half_n + 1)).min(cols);
+    let mut col_padding = 0;
+    if y < half_n {
+        col_padding = half_n - y;
+    }
+    let col_end = (y.saturating_add(half_n + 1 + col_padding)).min(cols);
 
     for row in row_start..row_end {
         for col in col_start..col_end {
