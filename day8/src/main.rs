@@ -16,7 +16,7 @@ fn main() {
                 print!(".");
             }
         }
-        println!("")
+        println!();
     }
     // your answer it too low:  221, 344
     // your answer is too high: 456
@@ -73,9 +73,9 @@ impl Antenna {
             frequency
         }
     }
-    fn find_same_frequency(&self, map: &Vec<Vec<Option<Antenna>>>, rows: usize, cols: usize, ignore_r: usize, ignore_c: usize) -> Vec<AntennaLocation> {
+    fn find_same_frequency(&self, map: &[Vec<Option<Antenna>>], rows: usize, cols: usize, ignore_r: usize, ignore_c: usize) -> Vec<AntennaLocation> {
         let mut friends = Vec::new();
-        for row in 0..rows {
+        for (row, _) in map.iter().enumerate().take(rows) {
             for col in 0..cols {
                 if row == ignore_r && col == ignore_c {
                     continue;
@@ -114,7 +114,7 @@ fn make_matrix(raw_data: &str) -> (Vec<Vec<Option<Antenna>>>, usize, usize) {
         .collect();
 
     let rows = matrix.len();
-    let cols = matrix.get(0).map(|m| m.len()).unwrap_or(0);
+    let cols = matrix.first().map(|m| m.len()).unwrap_or(0);
 
     (matrix, rows, cols)
 }
@@ -155,8 +155,8 @@ fn create_antinodes(map: Vec<Vec<Option<Antenna>>>, rows: usize, cols: usize) ->
                             if i * col_d > cols as isize {
                                 break;
                             }
-                            let row_1 = (row as isize + row_d * i as isize) as usize;
-                            let col_1 = (col as isize + col_d * i as isize) as usize;
+                            let row_1 = (row as isize + row_d * i) as usize;
+                            let col_1 = (col as isize + col_d * i) as usize;
                             if row_1 < rows && col_1 < cols {
                                 antinodes = add_antinode(antenna.clone(), row_1, col_1, antinodes);
                             }
@@ -171,8 +171,8 @@ fn create_antinodes(map: Vec<Vec<Option<Antenna>>>, rows: usize, cols: usize) ->
                                 break;
                             }
 
-                            let row_2 = (other.row as isize - row_d * i as isize) as usize;
-                            let col_2 = (other.col as isize - col_d * i as isize) as usize;
+                            let row_2 = (other.row as isize - row_d * i) as usize;
+                            let col_2 = (other.col as isize - col_d * i) as usize;
  
                             if row_2 < rows && col_2 < cols {
                                 antinodes = add_antinode(antenna.clone(), row_2, col_2, antinodes);
