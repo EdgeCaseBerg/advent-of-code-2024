@@ -2,9 +2,10 @@ use std::fs;
 use std::path;
 use std::env;
 use std::collections::VecDeque;
+use std::collections::HashSet;
 
 fn main() {
-    let no_arg = String::from("../input.txt");
+    let no_arg = String::from("../sample.txt");
     let maybe_file_contents = get_filename_from_args().or(Some(no_arg)).and_then(|name| load_file_to_str(&name));
     println!("{:?}", maybe_file_contents);
     if maybe_file_contents.is_none() {
@@ -44,60 +45,148 @@ fn main() {
     let mut check_sum = 0; 
     let mut idx = 0;
     let mut compressed_data = Vec::new();
+    let mut moved = HashSet::new();
+    let mut right_side_all_empty = false;
     loop {
-        if uncompressed_data.is_empty() {
+        println!("ud {:?}", uncompressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
+        if uncompressed_data.is_empty() || right_side_all_empty {
             break;
         }
         let left = uncompressed_data.pop_front().unwrap();
         match left {
             I::File { id, blocks } => {
-                for _ in 0..blocks {
-                    check_sum += id * idx;
-                    idx += 1;    
-                }
                 compressed_data.push(left);
+                idx += 1;
             }
-            I::Empty { blocks } => {
-                let available_blocks = blocks;
-                let mut right_most_file = None;
+            I::Empty { blocks: available_blocks } => {
+                let mut cannot_fit = Vec::new();
+                let mut could_not_fit = true;
                 loop {
-                    if let Some(right) = uncompressed_data.pop_back() {
-                        if !right.is_empty() {
-                            println!("Block to shift {:?}", right);
-                            right_most_file = Some(right);
-                            break;
+                    let maybe_data = uncompressed_data.pop_back();
+                    if maybe_data.is_none() {
+                        break;
+                    }
+                    let right = maybe_data.unwrap();
+                    let has_not_moved = match right {
+                        I::File { id, blocks: _ } => !moved.contains(&id),
+                        _ => false
+                    };
+                    
+                    if left.can_fit(&right) && has_not_moved {
+                        println!("{:?} can fit {:?}", left, right);
+                        let remaining_blocks = left.blocks() - right.blocks();
+                        if remaining_blocks > 0 {
+                            cannot_fit.push(I::new_empty(remaining_blocks));
                         }
+                        // File in hole of old data
+                        uncompressed_data.push_back(I::new_empty(right.blocks()));
+                        match right {
+                            I::File { id, blocks:_} => { moved.insert(id); }
+                            _ => {}
+                        };
+
+                        compressed_data.push(right);
+                        could_not_fit = false;
+                        break;                     
                     } else {
-                        // No more elements in the list.
-                        break
+                        cannot_fit.push(right);
                     }
                 }
-                if let Some(right) = right_most_file {
-                    match right {
-                        I::Empty { blocks: _ } => {
-                            println!("not possible");
-                        } // not  possible due to right.is_empty checks
-                        I::File { id, blocks } => {
-                            for _ in 0..available_blocks.min(blocks) {
-                                check_sum += id * idx;
-                                idx += 1
-                            }
-                            // Bug is here, need to still take more from teh right hand side
-                            // if there is space available for it. Helper function time?
-                            if available_blocks < blocks {
-                                uncompressed_data.push_back(I::new_file(id, blocks - available_blocks));
-                            } else if blocks < available_blocks {
-                                uncompressed_data.push_front(I::new_empty(available_blocks - blocks));
-                            }
-                            compressed_data.push(I::new_file(id, available_blocks.min(blocks)));
-                        }
+                if could_not_fit {
+                    compressed_data.push(I::new_empty(available_blocks));
+                }
+                if uncompressed_data.len() > 0 {
+                    for could_not_fit in cannot_fit.iter() {
+                        right_side_all_empty = right_side_all_empty && could_not_fit.is_empty();
+                        uncompressed_data.push_back(could_not_fit.clone())
+                    }
+                } else {
+                    println!("we have attempted to move each thing at least once?");
+                    right_side_all_empty = true;
+                    for could_not_fit in cannot_fit.iter() {
+                        right_side_all_empty = right_side_all_empty && could_not_fit.is_empty();
+                        compressed_data.push(could_not_fit.clone())
                     }
                 }
             }
         }
+        println!("cd {:?}", compressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
     }
     println!("{:?}", compressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
+
+    let mut idx = 0;
+    let mut check_sum = 0;
+    for segment in compressed_data {
+        match segment {
+            I::Empty { blocks } => {
+                for _ in 0..blocks {
+                    idx += 1
+                }
+            }
+            I::File { id, blocks } => {
+                for _ in 0..blocks {
+                    check_sum += id * idx;
+                    idx += 1
+                }
+            }
+        }
+    }
     println!("{:?}", check_sum);
+
+    // part 1
+    // loop {
+    //     if uncompressed_data.is_empty() {
+    //         break;
+    //     }
+    //     let left = uncompressed_data.pop_front().unwrap();
+    //     match left {
+    //         I::File { id, blocks } => {
+    //             for _ in 0..blocks {
+    //                 check_sum += id * idx;
+    //                 idx += 1;    
+    //             }
+    //             compressed_data.push(left);
+    //         }
+    //         I::Empty { blocks } => {
+    //             let available_blocks = blocks;
+    //             let mut right_most_file = None;
+    //             loop {
+    //                 if let Some(right) = uncompressed_data.pop_back() {
+    //                     if !right.is_empty() {
+    //                         right_most_file = Some(right);
+    //                         break;
+    //                     }
+    //                 } else {
+    //                     // No more elements in the list.
+    //                     break
+    //                 }
+    //             }
+    //             if let Some(right) = right_most_file {
+    //                 match right {
+    //                     I::Empty { blocks: _ } => {
+    //                         println!("not possible");
+    //                     } // not  possible due to right.is_empty checks
+    //                     I::File { id, blocks } => {
+    //                         for _ in 0..available_blocks.min(blocks) {
+    //                             check_sum += id * idx;
+    //                             idx += 1
+    //                         }
+    //                         // Bug is here, need to still take more from teh right hand side
+    //                         // if there is space available for it. Helper function time?
+    //                         if available_blocks < blocks {
+    //                             uncompressed_data.push_back(I::new_file(id, blocks - available_blocks));
+    //                         } else if blocks < available_blocks {
+    //                             uncompressed_data.push_front(I::new_empty(available_blocks - blocks));
+    //                         }
+    //                         compressed_data.push(I::new_file(id, available_blocks.min(blocks)));
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // println!("{:?}", compressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
+    // println!("{:?}", check_sum);
 }
 
 #[derive(Debug, Clone)]
@@ -107,6 +196,12 @@ enum I {
 }
 
 impl I {
+    fn blocks(&self) -> u64 {
+        match self {
+            I::Empty { blocks } => *blocks,
+            I::File { id:_ , blocks } => *blocks,
+        }
+    }
     fn is_empty(&self) -> bool {
         match self {
             I::Empty { blocks: _ } => true,
@@ -132,6 +227,18 @@ impl I {
             I::File { id, blocks } => {
                 id.to_string().repeat(*blocks as usize)
             }
+        }
+    }
+
+    fn can_fit(&self, other: &I) -> bool {
+        match self {
+            I::Empty { blocks } => {
+                if other.is_empty() {
+                    return false;
+                }
+                other.blocks() <= *blocks
+            },
+            _ => false
         }
     }
 }
