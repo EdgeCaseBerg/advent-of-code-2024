@@ -3,8 +3,8 @@ use std::path;
 use std::env;
 
 fn main() {
-    let no_arg = String::from("sample.txt");
-    let file_contents = get_filename_from_args().or(Some(no_arg)).map(|name| load_file_to_str(&name));
+    let no_arg = String::from("../sample.txt");
+    let file_contents = get_filename_from_args().or(Some(no_arg)).and_then(|name| load_file_to_str(&name));
     println!("{:?}", file_contents);
 }
 
