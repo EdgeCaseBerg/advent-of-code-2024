@@ -75,11 +75,13 @@ fn main() {
                     if left.can_fit(&right) && has_not_moved {
                         println!("{:?} can fit {:?}", left, right);
                         let remaining_blocks = left.blocks() - right.blocks();
+                        println!("ud1 {} {:?}", remaining_blocks, uncompressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
                         if remaining_blocks > 0 {
                             cannot_fit.push(I::new_empty(remaining_blocks));
                         }
-                        // File in hole of old data
-                        uncompressed_data.push_back(I::new_empty(right.blocks()));
+                        uncompressed_data.push_front(I::new_empty(remaining_blocks));
+                        println!("ud2 {} {:?}", remaining_blocks, uncompressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));        
+
                         match right {
                             I::File { id, blocks:_} => { moved.insert(id); }
                             _ => {}
@@ -98,6 +100,11 @@ fn main() {
                 if uncompressed_data.len() > 0 {
                     for could_not_fit in cannot_fit.iter() {
                         right_side_all_empty = right_side_all_empty && could_not_fit.is_empty();
+                        match could_not_fit {
+                            I::File { id, blocks:_} => { moved.remove(id); }
+                            _ => {}
+                        };
+
                         uncompressed_data.push_back(could_not_fit.clone())
                     }
                 } else {
