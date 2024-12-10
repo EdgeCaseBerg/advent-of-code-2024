@@ -2,7 +2,6 @@ use std::fs;
 use std::path;
 use std::env;
 use std::collections::VecDeque;
-use std::collections::HashSet;
 
 fn main() {
     let no_arg = String::from("../sample.txt");
@@ -42,88 +41,114 @@ fn main() {
 
     println!("{:?}", uncompressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
     
-    let mut check_sum = 0; 
-    let mut idx = 0;
-    let mut compressed_data = Vec::new();
-    let mut moved = HashSet::new();
+
+// what if this... though....
+///         let foo = uncompressed_data.iter().find(|i| match i {
+        //     I::File { id, blocks: _ } => *id == file_id,
+        //     I::Empty { blocks: _ } => false
+        // });
+
+    let mut compressed_data_left: Vec<I> = Vec::new();
+    let mut compressed_data_right_reverse: Vec<I> = Vec::new();
     let mut right_side_all_empty = false;
     loop {
         println!("ud {:?}", uncompressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
-        if uncompressed_data.is_empty() || right_side_all_empty {
+        println!("rd {:?}", compressed_data_right_reverse.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
+        
+        if right_side_all_empty || uncompressed_data.is_empty() {
             break;
         }
         let left = uncompressed_data.pop_front().unwrap();
         match left {
-            I::File { id, blocks } => {
-                compressed_data.push(left);
-                idx += 1;
+            I::File { id: _, blocks: _ } => {
+                compressed_data_left.push(left);
             }
-            I::Empty { blocks: available_blocks } => {
-                let mut cannot_fit = Vec::new();
-                let mut could_not_fit = true;
+            I::Empty { blocks: _ } => {
+                let maybe_right = uncompressed_data.pop_back();
+                if maybe_right.is_none() {
+                    right_side_all_empty = true;
+                    break; // nothing left.
+                }
+
+                //FORWARD!
+                uncompressed_data.push_back(maybe_right.unwrap());
                 loop {
-                    let maybe_data = uncompressed_data.pop_back();
-                    if maybe_data.is_none() {
-                        break;
-                    }
-                    let right = maybe_data.unwrap();
-                    let has_not_moved = match right {
-                        I::File { id, blocks: _ } => !moved.contains(&id),
-                        _ => false
-                    };
-                    
-                    if left.can_fit(&right) && has_not_moved {
-                        println!("{:?} can fit {:?}", left, right);
-                        let remaining_blocks = left.blocks() - right.blocks();
-                        println!("ud1 {} {:?}", remaining_blocks, uncompressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
-                        if remaining_blocks > 0 {
-                            cannot_fit.push(I::new_empty(remaining_blocks));
+                    match uncompressed_data.pop_back() {
+                        Some(right) => {
+                            if right.is_empty() {
+                                compressed_data_right_reverse.push(right);        
+                            } else {
+                                uncompressed_data.push_front(right);
+                                break;        
+                            }
                         }
-                        uncompressed_data.push_front(I::new_empty(remaining_blocks));
-                        println!("ud2 {} {:?}", remaining_blocks, uncompressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));        
-
-                        match right {
-                            I::File { id, blocks:_} => { moved.insert(id); }
-                            _ => {}
-                        };
-
-                        compressed_data.push(right);
-                        could_not_fit = false;
-                        break;                     
-                    } else {
-                        cannot_fit.push(right);
+                        None => {
+                            right_side_all_empty = true;
+                            break
+                        },
                     }
                 }
-                if could_not_fit {
-                    compressed_data.push(I::new_empty(available_blocks));
-                }
-                if uncompressed_data.len() > 0 {
-                    for could_not_fit in cannot_fit.iter() {
-                        right_side_all_empty = right_side_all_empty && could_not_fit.is_empty();
-                        match could_not_fit {
-                            I::File { id, blocks:_} => { moved.remove(id); }
-                            _ => {}
-                        };
 
-                        uncompressed_data.push_back(could_not_fit.clone())
+                if right_side_all_empty {
+                    break;
+                }
+
+                // Guaranteed to exist.
+                let right = uncompressed_data.pop_front().unwrap();
+                println!("Looking to seat {:?} in left {:?}", right, left);
+                
+                // We now have the first right side file, find a hole that fits.
+                if left.can_fit(&right) {
+                    println!("{:?} can fit {:?}", left, right);
+                    let remaining_blocks = left.blocks() - right.blocks();
+                    compressed_data_right_reverse.push(I::new_empty(right.blocks()));
+                    compressed_data_left.push(right);
+                    if remaining_blocks > 0 {
+                        uncompressed_data.push_front(I::new_empty(remaining_blocks));
                     }
                 } else {
-                    println!("we have attempted to move each thing at least once?");
-                    right_side_all_empty = true;
-                    for could_not_fit in cannot_fit.iter() {
-                        right_side_all_empty = right_side_all_empty && could_not_fit.is_empty();
-                        compressed_data.push(could_not_fit.clone())
+                    // advance forward from the left side to see if we can something
+                    uncompressed_data.push_front(left);
+                    let mut to_restore_after_advancement_done: VecDeque<I> = VecDeque::new();
+                    loop {
+                        let peek_ahead = uncompressed_data.pop_front();
+                        if peek_ahead.is_none() {
+                            println!("restoring {:?} with {:?}", uncompressed_data,  to_restore_after_advancement_done.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
+                            compressed_data_right_reverse.push(right); // RIGHT CANNOT FIT                            
+                            for restore in to_restore_after_advancement_done {
+                                uncompressed_data.push_back(restore);
+                            }
+                            break;
+                        }
+                        // left segment to consider
+                        let next_left = peek_ahead.unwrap();
+                        if next_left.can_fit(&right) {
+                            println!("{:?} {:?}", next_left.blocks(), right.blocks());
+                            let remaining_blocks = next_left.blocks() - right.blocks();
+                            compressed_data_right_reverse.push(I::new_empty(right.blocks()));
+                            compressed_data_left.push(right);
+                            if remaining_blocks > 0 {
+                                to_restore_after_advancement_done.push_front(I::new_empty(remaining_blocks));
+                            }
+                            break;
+                        } else {
+                            to_restore_after_advancement_done.push_back(next_left);
+                        }
                     }
+                    
                 }
             }
         }
-        println!("cd {:?}", compressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
+        println!("cd {:?}", compressed_data_left.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
     }
-    println!("{:?}", compressed_data.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
+    for backside in compressed_data_right_reverse.into_iter().rev() {
+        compressed_data_left.push(backside.clone());
+    }
+    println!("{:?}", compressed_data_left.clone().into_iter().map(|i| i.to_string()).collect::<Vec<String>>().join(""));
 
     let mut idx = 0;
     let mut check_sum = 0;
-    for segment in compressed_data {
+    for segment in compressed_data_left {
         match segment {
             I::Empty { blocks } => {
                 for _ in 0..blocks {
