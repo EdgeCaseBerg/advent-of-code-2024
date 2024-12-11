@@ -1,6 +1,7 @@
 use std::fs;
 use std::error::Error;
 use std::env;
+use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // let maybe_filename = Some("../sample2.txt"); 
@@ -9,43 +10,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("No file provided".into());
     }
     let input: String = fs::read_to_string(maybe_filename.unwrap())?;
-    let mut stones: Vec<Stone> = input.split(" ").map(|s| {
+    let stones: Vec<Stone> = input.split(" ").map(|s| {
         Stone {
             value: s.parse().unwrap()
         }
     }).collect();
-
-    let mut buffer: Vec<Stone> = Vec::new();
-
-    let times_to_blink = 25;
-    for _ in 0..times_to_blink {
-        for stone in stones.iter() {
-            match stone.blink() {
-                OnBlink::ZeroToOne => {
-                    buffer.push(Stone::one());
-                },
-                OnBlink::Split => {
-                    let (left, right) = stone.split();
-                    buffer.push(left);
-                    buffer.push(right);
-                },
-                OnBlink::ReplaceStone => {
-                    let multiplied_by_2024 = stone.to_new_stone();
-                    buffer.push(multiplied_by_2024);
-                }  
-            }
-        }
-        stones.clear();
-        stones.append(&mut buffer);
-    }
-
     println!("{:?}", stones.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(" "));
-    println!("Total stones: {:?}", stones.len());
+
+    let mut cache: HashMap<(u64, u64), u64> = HashMap::new();
+
+    let times_to_blink = 75;
+    let mut num_stones = 0;
+    for stone in stones.iter() {
+        num_stones += stone.count_size_after_blinks(times_to_blink, &mut cache);
+    }
+    println!("Secondary count: {:?}", num_stones);
     
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Stone {
     value: u64
 }
@@ -93,6 +77,37 @@ impl Stone {
 
     fn to_string(&self) -> String {
         self.value.to_string()
+    }
+
+    fn count_size_after_blinks(&self, number_of_blinks: u64, cache: &mut HashMap<(u64, u64), u64>) -> u64 {
+        let key = (self.value, number_of_blinks);
+        if let Some(&cached_result) = cache.get(&key) {
+            return cached_result;
+        }
+
+        let mut num_stones = 1; // ourselves.
+        if number_of_blinks == 0 {
+            cache.insert(key, num_stones);
+            return num_stones;
+        }
+        
+        match self.blink() {
+            OnBlink::ZeroToOne => {
+                num_stones += Stone::one().count_size_after_blinks(number_of_blinks - 1, cache) - 1;
+            },
+            OnBlink::Split => {
+                let (left, right) = self.split();
+                num_stones += left.count_size_after_blinks(number_of_blinks - 1, cache) - 1; // sub 1 to not double count ourselves.
+                num_stones += right.count_size_after_blinks(number_of_blinks - 1, cache);
+            },
+            OnBlink::ReplaceStone => {
+                let multiplied_by_2024 = self.to_new_stone();
+                num_stones += multiplied_by_2024.count_size_after_blinks(number_of_blinks - 1, cache) - 1;
+            }  
+        }
+
+        cache.insert(key, num_stones);
+        num_stones
     }
 }
 
