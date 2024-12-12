@@ -150,18 +150,6 @@ impl Region {
         
         sides
     }
-
-    fn surrounded(&self, point: (usize, usize)) -> bool {
-        let min = self.plants.iter().min_by_key(|(r,_)| r).unwrap();
-        let max = self.plants.iter().max_by_key(|(r,_)| r).unwrap();
-        let within_x = min.0 < point.0 && point.0 < max.0;
-        
-        let min = self.plants.iter().min_by_key(|(_, c)| c).unwrap();
-        let max = self.plants.iter().max_by_key(|(c,_)| c).unwrap();
-        let within_y = min.1 < point.1 && point.1 < max.1;
-        
-        within_x && within_y
-    }
 }
 
 
