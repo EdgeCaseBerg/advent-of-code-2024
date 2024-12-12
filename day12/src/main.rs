@@ -30,20 +30,21 @@ impl Plant {
 
 #[derive(Debug, Clone)]
 struct Region {
-    area: u64,
     perimeter: u64,
     planted: Plant,
     plants: Vec<(usize, usize)>
 }
 
 impl Region {
+    fn area(&self) -> u64 {
+        self.plants.len() as u64
+    }
     fn price(&self) -> u64 {
-        self.area * self.perimeter
+        self.area() * self.perimeter
     }
 
     fn of(plant: Plant) -> Region {
         Region {
-            area: 0,
             perimeter: 0,
             planted: plant,
             plants: Vec::new()
@@ -97,7 +98,7 @@ fn find_regions(plots: &Vec<Vec<Plant>>) -> Vec<Region> {
             let region = bfs(&plots, &plant, row, col);
             // Now use the bounds of that plot and check if there are
             // any other types of plants inside of the region need to consider.
-            // ?
+            
             //
             region.plants.iter().for_each(|coord| {
                 visited_already.insert(coord.clone());    
