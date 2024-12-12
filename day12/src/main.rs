@@ -30,9 +30,10 @@ impl Plant {
 
 #[derive(Debug, Clone)]
 struct Region {
-    perimeter: u64,
     planted: Plant,
-    plants: Vec<(usize, usize)>
+    plants: Vec<(usize, usize)>,
+    adjacent: HashSet<(usize, usize)>,
+    regions_within_this: Vec<Region>
 }
 
 impl Region {
@@ -40,19 +41,32 @@ impl Region {
         self.plants.len() as u64
     }
     fn price(&self) -> u64 {
-        self.area() * self.perimeter
+        self.area() * self.perimeter()
     }
 
     fn of(plant: Plant) -> Region {
         Region {
-            perimeter: 0,
             planted: plant,
-            plants: Vec::new()
+            plants: Vec::new(),
+            regions_within_this: Vec::new(),
+            adjacent: HashSet::new()
         }
     }
 
     fn add_plot(&mut self, plot: (usize, usize)) {
         self.plants.push(plot);
+    }
+
+    fn add_region(&mut self, region: Region) {
+        self.regions_within_this.push(region);
+    }
+
+    fn add_boundary_plant(&mut self, at: (usize, usize)) {
+        self.adjacent.insert(at);
+    }
+
+    fn perimeter(&self) -> u64 {
+        0
     }
 }
 
@@ -96,10 +110,6 @@ fn find_regions(plots: &Vec<Vec<Plant>>) -> Vec<Region> {
             // Find the plot.
             let mut region = Region::of(plant);
             let region = bfs(&plots, &plant, row, col);
-            // Now use the bounds of that plot and check if there are
-            // any other types of plants inside of the region need to consider.
-            
-            //
             region.plants.iter().for_each(|coord| {
                 visited_already.insert(coord.clone());    
             });
@@ -140,6 +150,8 @@ fn bfs(plots: &Vec<Vec<Plant>>, of_type: &Plant, start_row: usize, start_col: us
                 visited.insert((new_row, new_col));
                 queue.push_back((row, col));
                 region.add_plot((row, col));
+            } else {
+                region.add_boundary_plant((row,col));
             }
         }
     }
