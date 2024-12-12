@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // let maybe_filename = get_filename_from_args();
-    let maybe_filename = Some(String::from("../input.txt"));
+    let maybe_filename = Some(String::from("../sample1.txt"));
     if maybe_filename.is_none() {
         return Err("No file provided".into());
     }
@@ -14,11 +14,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let plants = make_matrix(&input);
     let regions = find_regions(&plants);
     let mut cost = 0;
+    let mut discount = 0;
     for region in regions {
-        println!("{} {}", region.planted.value, region.perimeter());
+        println!("{} {} {}", region.planted.value, region.perimeter(), region.sides());
         cost += region.price();
+        discount += region.area() * region.sides();
     }
     println!("Cost {:?}", cost);
+    println!("Discount {:?}", discount);
     Ok(())
 }
 
@@ -87,6 +90,67 @@ impl Region {
         p
     }
 
+    fn sides(&self) -> u64 {
+        if self.plants.len() == 1 {
+            return 4;
+        }
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+        let plant_locations: HashSet<_> = self.plants.iter().cloned().collect();
+
+        let mut boundary_edges: HashSet<((isize, isize),(isize, isize))> = HashSet::new();
+        for plot in self.plants.iter() {
+            for (d_row, d_col) in &directions {
+                let new_row = plot.0 as isize + d_row;
+                let new_col = plot.1 as isize + d_col;
+                let neighbor = (new_row as usize, new_col as usize);
+                if !plant_locations.contains(&neighbor) {
+                    // add sorted edge. sort should help avoid dups
+                    if (plot.0 as isize, plot.1 as isize) < (new_row, new_col) {
+                        let edge = ((plot.0 as isize, plot.1 as isize), (new_row, new_col));
+                        boundary_edges.insert(edge);
+                    } else {
+                        let edge = ((new_row, new_col), (plot.0 as isize, plot.1 as isize));
+                        boundary_edges.insert(edge);
+                    }
+                }
+            }
+        }
+
+        // Collapse individual edges into sides or else we get 10 sides for something with 4.
+        let mut visited = HashSet::new();
+        let mut sides = 0;
+
+        for &start_edge in &boundary_edges {
+            if visited.contains(&start_edge) {
+                continue;
+            }
+
+            sides += 1;
+            let mut stack = vec![start_edge];
+            while let Some(current) = stack.pop() {
+                if visited.contains(&current) {
+                    continue;
+                }
+
+                visited.insert(current);
+
+                let &(p1, p2) = &current;
+                for &next_edge in &boundary_edges {
+                    if visited.contains(&next_edge) {
+                        continue;
+                    }
+
+                    let &(p3, p4) = &next_edge;
+                    if p2 == p3 || p2 == p4 || p1 == p3 || p1 == p4 {
+                        stack.push(next_edge);
+                    }
+                }
+            }
+        }
+        
+        sides
+    }
+
     fn surrounded(&self, point: (usize, usize)) -> bool {
         let min = self.plants.iter().min_by_key(|(r,_)| r).unwrap();
         let max = self.plants.iter().max_by_key(|(r,_)| r).unwrap();
@@ -138,7 +202,6 @@ fn find_regions(plots: &Vec<Vec<Plant>>) -> Vec<Region> {
             }
             let plant = plots[row][col].clone();
             // Find the plot.
-            let mut region = Region::of(plant);
             let region = bfs(&plots, &plant, row, col);
             region.plants.iter().for_each(|coord| {
                 visited_already.insert(coord.clone());    
