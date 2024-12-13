@@ -6,8 +6,8 @@ use std::collections::VecDeque;
 use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // let maybe_filename = get_filename_from_args();
-    let maybe_filename = Some(String::from("../input.txt"));
+    let maybe_filename = get_filename_from_args();
+    // let maybe_filename = Some(String::from("../input.txt"));
     if maybe_filename.is_none() {
         return Err("No file provided".into());
     }
@@ -115,13 +115,10 @@ impl Region {
     }
 
     fn sides(&self) -> u64 {
-        println!("sides");
         if self.plants.len() == 1 {
             return 4;
         }
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-        // let plant_locations: HashSet<_> = self.plants.iter().cloned().collect();
-
         let mut sides_and_directions: HashMap<Direction, Vec<(usize, usize)>> = HashMap::new();
         for plot in self.plants.iter() {
             for (d_row, d_col) in &directions {
@@ -145,7 +142,6 @@ impl Region {
             }
         }
 
-        println!("\n{:?} {} <<<<\n", sides_and_directions, self.planted.value);
         let mut sides_across_directions = 0;
         // we now just need to collapse any of the touching bits based on direction.
         for direction in sides_and_directions.keys() {
@@ -201,7 +197,6 @@ impl Region {
                                     }
                                 }
                             }
-                            println!("{:?} {:?} sides {:?}", self.planted.value, direction, sides);
                             sides_across_directions += sides;
                         }
                     }
@@ -235,7 +230,6 @@ impl Region {
                                 if rows.len() > 1 {
                                     let mut rows = rows.clone();
                                     rows.sort();
-                                    println!("{:?} {}???", rows, col);
                                     let mut rows = rows.iter();
                                     let mut r1 = rows.next();
                                     loop {
@@ -245,13 +239,11 @@ impl Region {
 
                                         let r2 = rows.next();
                                         if r2.is_none() {
-                                            println!("do we need to add here {:?}", r1);
                                             break;
                                         }
 
                                         let r2 = r2.unwrap();
 
-                                        println!("{:?} {}", r1.unwrap(), r2);
                                         if (*r1.unwrap() as isize - *r2 as isize).abs() != 1 {
                                             sides += 1;
                                         }
@@ -260,7 +252,6 @@ impl Region {
                                     }
                                 }
                             }
-                            println!("{:?} {:?} sides {:?}", self.planted.value, direction, sides);
                             sides_across_directions += sides;
                         }
                     }
@@ -268,7 +259,6 @@ impl Region {
             }
         }
 
-        println!("{:?} sides {:?}", self.planted, sides_across_directions);
         sides_across_directions
     }
 }
