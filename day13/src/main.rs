@@ -4,18 +4,15 @@ use std::env;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let maybe_filename = get_filename_from_args();
-    let maybe_filename = Some(String::from("../sample.txt"));
+    let maybe_filename = Some(String::from("../input.txt"));
     if maybe_filename.is_none() {
         return Err("No file provided".into());
     }
     let input: String = fs::read_to_string(maybe_filename.unwrap())?;
 
-    let button_a_cost = 3;
-    let button_b_cost = 1;
-
     let machines = create_machines(input);
-
-    println!("{:?}", machines);
+    let (won, cost) = part1(machines);
+    println!("Prizes won: {}, Total cost: {}", won, cost);
 
     Ok(())
 }
@@ -58,6 +55,51 @@ impl ClawMachine {
     }
 }
 
+fn part1(machines: Vec<ClawMachine>) -> (i64, i64) {
+    let mut total_cost = 0;
+    let mut prizes_won = 0;
+
+    for machine in machines {
+        if let Some((a_presses, b_presses)) = find_solution(&machine) {
+            total_cost += 3 * a_presses + b_presses;
+            prizes_won += 1;
+        }
+    }
+
+    (prizes_won, total_cost)
+}
+
+fn find_solution(machine: &ClawMachine) -> Option<(i64, i64)> {
+    let (gcd_x, _, _) = extended_gcd(machine.button_a.x_right, machine.button_b.x_right);
+    let (gcd_y, _, _) = extended_gcd(machine.button_a.y_forward, machine.button_b.y_forward);
+
+    println!("{:?} {}, {}", machine, gcd_x, gcd_y);
+    if machine.prize.x % gcd_x != 0 || machine.prize.y % gcd_y != 0 {
+        return None; // No solution exists
+    }
+
+    let mut best_cost = i64::MAX;
+    let mut best_solution = None;
+    let button_a_cost = 3;
+    let button_b_cost = 1;
+
+    for a in 0..=100 {
+        for b in 0..=100 {
+            if machine.button_a.x_right * a + machine.button_b.x_right * b == machine.prize.x && 
+               machine.button_a.y_forward * a + machine.button_b.y_forward * b == machine.prize.y 
+            {
+                let cost = button_a_cost * a + button_b_cost * b;
+                if cost < best_cost {
+                    best_cost = cost;
+                    best_solution = Some((a, b));
+                }
+            }
+        }
+    }
+
+    best_solution
+}
+
 fn create_machines(raw: String) -> Vec<ClawMachine> {
     let tuples: Vec<(i64, i64)> = raw
         .lines()
@@ -93,6 +135,13 @@ fn create_machines(raw: String) -> Vec<ClawMachine> {
     machines
 }
 
+fn extended_gcd(a: i64, b: i64) -> (i64, i64, i64) {
+    if b == 0 {
+        return (a, 1, 0);
+    }
+    let (g, x1, y1) = extended_gcd(b, a % b);
+    (g, y1, x1 - (a / b) * y1)
+}
 
 fn get_filename_from_args() -> Option<String> {
     let arguments: Vec<String> = env::args().collect();
