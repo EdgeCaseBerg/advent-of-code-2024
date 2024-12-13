@@ -3,10 +3,11 @@ use std::error::Error;
 use std::env;
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // let maybe_filename = get_filename_from_args();
-    let maybe_filename = Some(String::from("../sample1.txt"));
+    let maybe_filename = Some(String::from("../input.txt"));
     if maybe_filename.is_none() {
         return Err("No file provided".into());
     }
@@ -16,12 +17,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut cost = 0;
     let mut discount = 0;
     for region in regions {
-        println!("{} {} {}", region.planted.value, region.perimeter(), region.sides());
         cost += region.price();
         discount += region.area() * region.sides();
     }
     println!("Cost {:?}", cost);
     println!("Discount {:?}", discount);
+
     Ok(())
 }
 
@@ -41,6 +42,29 @@ struct Region {
     planted: Plant,
     plants: Vec<(usize, usize)>,
     touching: HashSet<(isize, isize)>
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right
+}
+
+impl Direction {
+    fn of(row: isize, col: isize) -> Direction {
+        match (row, col) {
+            (0, 1) => Direction::Right,
+            (1, 0) => Direction::Down,
+            (0, -1) => Direction::Left,
+            (-1, 0) => Direction::Up,
+            _ => {
+                println!("impossible! {}, {}", row, col);
+                Direction::Left
+            }
+        }
+    }
 }
 
 impl Region {
@@ -91,64 +115,161 @@ impl Region {
     }
 
     fn sides(&self) -> u64 {
+        println!("sides");
         if self.plants.len() == 1 {
             return 4;
         }
         let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
-        let plant_locations: HashSet<_> = self.plants.iter().cloned().collect();
+        // let plant_locations: HashSet<_> = self.plants.iter().cloned().collect();
 
-        let mut boundary_edges: HashSet<((isize, isize),(isize, isize))> = HashSet::new();
+        let mut sides_and_directions: HashMap<Direction, Vec<(usize, usize)>> = HashMap::new();
         for plot in self.plants.iter() {
             for (d_row, d_col) in &directions {
                 let new_row = plot.0 as isize + d_row;
                 let new_col = plot.1 as isize + d_col;
-                let neighbor = (new_row as usize, new_col as usize);
-                if !plant_locations.contains(&neighbor) {
-                    // add sorted edge. sort should help avoid dups
-                    if (plot.0 as isize, plot.1 as isize) < (new_row, new_col) {
-                        let edge = ((plot.0 as isize, plot.1 as isize), (new_row, new_col));
-                        boundary_edges.insert(edge);
+                if self.touching.contains(&(new_row, new_col)) {
+                    let key = Direction::of(d_row.clone(), d_col.clone());
+                    let mut plots_with_sides_this_way = Vec::new();
+                    if sides_and_directions.contains_key(&key) {
+                        let mut already_found: Vec<(usize, usize)> = sides_and_directions.get(&key).unwrap().to_vec();
+                        already_found.push(plot.clone());
+                        plots_with_sides_this_way = already_found;
+                        sides_and_directions.remove(&key);
+                        sides_and_directions.insert(key, plots_with_sides_this_way);
                     } else {
-                        let edge = ((new_row, new_col), (plot.0 as isize, plot.1 as isize));
-                        boundary_edges.insert(edge);
+                        plots_with_sides_this_way.push(plot.clone());
+                        sides_and_directions.insert(key, plots_with_sides_this_way);
+                    }
+                    
+                }
+            }
+        }
+
+        println!("\n{:?} {} <<<<\n", sides_and_directions, self.planted.value);
+        let mut sides_across_directions = 0;
+        // we now just need to collapse any of the touching bits based on direction.
+        for direction in sides_and_directions.keys() {
+            match direction {
+                Direction::Up | Direction::Down => {
+                    match sides_and_directions.get(direction) {
+                        None => {}
+                        Some(plots_with_side_facing_up) => {
+                            let mut by_row = plots_with_side_facing_up.into_iter().cloned().collect::<Vec<_>>();
+                            by_row.sort_by_key(|(r, _)| *r);
+                            // Now we just find any deltas in the col per row to count how many upward facing sides we've got :)
+                            let mut sides = 1;
+                            let mut current_row = by_row[0].0;
+                            let mut col_by_row: HashMap<usize, Vec<usize>> = HashMap::new();
+                            for plot in by_row.iter() {
+                                if current_row != plot.0 {
+                                    sides += 1;
+                                    current_row = plot.0;
+                                }
+                                if col_by_row.contains_key(&plot.0) {
+                                    let mut v: Vec<usize> = col_by_row.get(&plot.0).unwrap().to_vec();
+                                    v.push(plot.1);
+                                    col_by_row.remove(&plot.0);
+                                    col_by_row.insert(plot.0, v.to_vec());
+                                } else {
+                                    col_by_row.insert(plot.0, vec![plot.1]);
+                                }
+                            }
+
+                            for (_, columns) in &col_by_row {
+                                if columns.len() > 1 {
+                                    let mut cols = columns.clone();
+                                    cols.sort();
+                                    let mut cols = cols.iter();
+                                    let mut c1 = cols.next();
+                                    loop {
+                                        if c1.is_none() {
+                                            break
+                                        }
+
+                                        let c2 = cols.next();
+                                        if c2.is_none() {
+                                            break;
+                                        }
+
+                                        let c2 = c2.unwrap();
+
+                                        if (*c1.unwrap() as isize - *c2 as isize).abs() != 1 {
+                                            sides += 1;
+                                        }
+
+                                        c1 = Some(c2);
+                                    }
+                                }
+                            }
+                            println!("{:?} {:?} sides {:?}", self.planted.value, direction, sides);
+                            sides_across_directions += sides;
+                        }
+                    }
+                }
+                Direction::Right  | Direction::Left => {
+                    match sides_and_directions.get(direction) {
+                        None => {}
+                        Some(plots_with_side_facing_up) => {
+                            let mut by_col = plots_with_side_facing_up.into_iter().cloned().collect::<Vec<_>>();
+                            by_col.sort_by_key(|(_, c)| *c);
+                            // Now we just find any deltas in the col per row to count how many upward facing sides we've got :)
+                            let mut sides = 1;
+                            let mut current_col = by_col[0].1;
+                            let mut row_by_col: HashMap<usize, Vec<usize>> = HashMap::new();
+                            for plot in by_col.iter() {
+                                if current_col != plot.1 {
+                                    sides += 1;
+                                    current_col = plot.1;
+                                }
+                                if row_by_col.contains_key(&plot.1) {
+                                    let mut v: Vec<usize> = row_by_col.get(&plot.1).unwrap().to_vec();
+                                    v.push(plot.0);
+                                    row_by_col.remove(&plot.1);
+                                    row_by_col.insert(plot.1, v.to_vec());
+                                } else {
+                                    row_by_col.insert(plot.1, vec![plot.0]);
+                                }
+                            }
+
+                            for (col, rows) in &row_by_col {
+                                if rows.len() > 1 {
+                                    let mut rows = rows.clone();
+                                    rows.sort();
+                                    println!("{:?} {}???", rows, col);
+                                    let mut rows = rows.iter();
+                                    let mut r1 = rows.next();
+                                    loop {
+                                        if r1.is_none() {
+                                            break
+                                        }
+
+                                        let r2 = rows.next();
+                                        if r2.is_none() {
+                                            println!("do we need to add here {:?}", r1);
+                                            break;
+                                        }
+
+                                        let r2 = r2.unwrap();
+
+                                        println!("{:?} {}", r1.unwrap(), r2);
+                                        if (*r1.unwrap() as isize - *r2 as isize).abs() != 1 {
+                                            sides += 1;
+                                        }
+
+                                        r1 = Some(r2);
+                                    }
+                                }
+                            }
+                            println!("{:?} {:?} sides {:?}", self.planted.value, direction, sides);
+                            sides_across_directions += sides;
+                        }
                     }
                 }
             }
         }
 
-        // Collapse individual edges into sides or else we get 10 sides for something with 4.
-        let mut visited = HashSet::new();
-        let mut sides = 0;
-
-        for &start_edge in &boundary_edges {
-            if visited.contains(&start_edge) {
-                continue;
-            }
-
-            sides += 1;
-            let mut stack = vec![start_edge];
-            while let Some(current) = stack.pop() {
-                if visited.contains(&current) {
-                    continue;
-                }
-
-                visited.insert(current);
-
-                let &(p1, p2) = &current;
-                for &next_edge in &boundary_edges {
-                    if visited.contains(&next_edge) {
-                        continue;
-                    }
-
-                    let &(p3, p4) = &next_edge;
-                    if p2 == p3 || p2 == p4 || p1 == p3 || p1 == p4 {
-                        stack.push(next_edge);
-                    }
-                }
-            }
-        }
-        
-        sides
+        println!("{:?} sides {:?}", self.planted, sides_across_directions);
+        sides_across_directions
     }
 }
 
