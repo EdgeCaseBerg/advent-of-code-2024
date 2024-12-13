@@ -61,8 +61,8 @@ impl ClawMachine {
             button_a: self.button_a.clone(),
             button_b: self.button_b.clone(),
             prize: Location {
-                x: self.prize.x + 10000000000000,
-                y: self.prize.y + 10000000000000,
+                x: self.prize.x + 10_000_000_000_000,
+                y: self.prize.y + 10_000_000_000_000,
             }
         }
     }
@@ -87,7 +87,7 @@ fn part2(machines: Vec<ClawMachine>) -> (i64, i64) {
     let mut prizes_won = 0;
 
     for machine in machines {
-        if let Some((a_presses, b_presses)) = find_solution_p2(&machine) {
+        if let Some((a_presses, b_presses)) = get_button_presses_if_winable(&machine) {
             total_cost += 3 * a_presses + b_presses;
             prizes_won += 1;
         }
@@ -126,29 +126,51 @@ fn find_solution_p1(machine: &ClawMachine) -> Option<(i64, i64)> {
     best_solution
 }
 
-fn find_solution_p2(machine: &ClawMachine) -> Option<(i64, i64)> {
-    let ax = machine.button_a.x_right;
-    let ay = machine.button_a.y_forward;
-    let bx = machine.button_b.x_right;
-    let by = machine.button_b.y_forward;
-    let px = machine.prize.x;
-    let py = machine.prize.y;
+fn get_button_presses_if_winable(machine: &ClawMachine) -> Option<(i64, i64)> {
+    let a1 = machine.button_a.x_right;
+    let b1 = machine.button_a.y_forward;
+    let a2 = machine.button_b.x_right;
+    let b2 = machine.button_b.y_forward;
+    let c1 = machine.prize.x;
+    let c2 = machine.prize.y;
     /* 
-     * Let's represent this as a matrix.
-     * 
-     * [ 94 22 ] [a] = 10...8400
-     * [ 34 67 ] [b] = 10...5400
+     * Let's represent this as 2 lines.
+     * (Does not have a solution in part 2 due to the +10000000000000 to p value)
+     * x94 + y34 - 8400 = 0
+     * x22 + y67 - 5400 = 0
      *
-     * [ ax bx ]      [a]   = px
-     * [ ay by ]      [b]   = py
-     * coefficieents, step, prize
+     * Does have a solution in part 2
+     * x26 + y66 - 12748 = 0
+     * x67 + y21 - 12716 = 0
      *
-     * AX = B
-     * X = IB, where I is in the inverse of A
-     * So the first question is, does the inverse exist.
+     * Or, in variable form...
+     * a1 + b1 - c1 = 0
+     * a2 + b2 - c2 = 0 (where c is negative I guess)
      */
-    // println!("inverse {:?}",  .... time to read a math page );
-    None
+    find_intersection(a1 as f64, b1 as f64, c1 as f64, a2 as f64, b2 as f64, c2 as f64)
+}
+
+fn find_intersection(a1: f64, b1: f64, c1: f64, a2: f64, b2: f64, c2: f64) -> Option<(i64, i64)> {
+    let determinant = a1 * b2 - b1 * a2;
+    // parallel? 
+    if determinant == 0.0 {
+        return None;
+    }
+
+    let x = (a2 * -c2 - b2 * -c1) / determinant;
+    let y = (-c1 * b1 - -c2 * a1) / determinant;
+
+    if x.fract() != 0.0 {
+        return None;
+    }
+
+    if y.fract() != 0.0 {
+        return None;
+    }
+
+    println!("{:?}", (x, y ));
+
+    Some((x.abs() as i64, y.abs() as i64))
 }
 
 
