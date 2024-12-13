@@ -4,7 +4,7 @@ use std::env;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // let maybe_filename = get_filename_from_args();
-    let maybe_filename = Some(String::from("../sample.txt"));
+    let maybe_filename = Some(String::from("../input.txt"));
     if maybe_filename.is_none() {
         return Err("No file provided".into());
     }
@@ -167,8 +167,6 @@ fn find_intersection(a1: f64, b1: f64, c1: f64, a2: f64, b2: f64, c2: f64) -> Op
     if y.fract() != 0.0 {
         return None;
     }
-
-    println!("{:?}", (x, y ));
 
     Some((x.abs() as i64, y.abs() as i64))
 }
