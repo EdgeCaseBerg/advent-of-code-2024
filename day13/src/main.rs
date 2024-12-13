@@ -3,16 +3,19 @@ use std::error::Error;
 use std::env;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let maybe_filename = get_filename_from_args();
-    let maybe_filename = Some(String::from("../input.txt"));
+    // let maybe_filename = get_filename_from_args();
+    let maybe_filename = Some(String::from("../sample.txt"));
     if maybe_filename.is_none() {
         return Err("No file provided".into());
     }
     let input: String = fs::read_to_string(maybe_filename.unwrap())?;
 
     let machines = create_machines(input);
-    let (won, cost) = part1(machines);
-    println!("Prizes won: {}, Total cost: {}", won, cost);
+    let (won, cost) = part1(machines.clone());
+    println!("Part 1 Prizes won: {}, Total cost: {}", won, cost);
+    let corrected_machines = machines.into_iter().map(|m| m.correct_conversion()).collect();
+    let (won, cost) = part2(corrected_machines);
+    println!("Part 2 Prizes won: {}, Total cost: {}", won, cost);
 
     Ok(())
 }
@@ -53,6 +56,16 @@ impl ClawMachine {
             }
         }
     }
+    fn correct_conversion(&self) -> ClawMachine {
+        ClawMachine {
+            button_a: self.button_a.clone(),
+            button_b: self.button_b.clone(),
+            prize: Location {
+                x: self.prize.x + 10000000000000,
+                y: self.prize.y + 10000000000000,
+            }
+        }
+    }
 }
 
 fn part1(machines: Vec<ClawMachine>) -> (i64, i64) {
@@ -60,7 +73,7 @@ fn part1(machines: Vec<ClawMachine>) -> (i64, i64) {
     let mut prizes_won = 0;
 
     for machine in machines {
-        if let Some((a_presses, b_presses)) = find_solution(&machine) {
+        if let Some((a_presses, b_presses)) = find_solution_p1(&machine) {
             total_cost += 3 * a_presses + b_presses;
             prizes_won += 1;
         }
@@ -69,11 +82,24 @@ fn part1(machines: Vec<ClawMachine>) -> (i64, i64) {
     (prizes_won, total_cost)
 }
 
-fn find_solution(machine: &ClawMachine) -> Option<(i64, i64)> {
+fn part2(machines: Vec<ClawMachine>) -> (i64, i64) {
+    let mut total_cost = 0;
+    let mut prizes_won = 0;
+
+    for machine in machines {
+        if let Some((a_presses, b_presses)) = find_solution_p2(&machine) {
+            total_cost += 3 * a_presses + b_presses;
+            prizes_won += 1;
+        }
+    }
+
+    (prizes_won, total_cost)
+}
+
+fn find_solution_p1(machine: &ClawMachine) -> Option<(i64, i64)> {
     let (gcd_x, _, _) = extended_gcd(machine.button_a.x_right, machine.button_b.x_right);
     let (gcd_y, _, _) = extended_gcd(machine.button_a.y_forward, machine.button_b.y_forward);
 
-    println!("{:?} {}, {}", machine, gcd_x, gcd_y);
     if machine.prize.x % gcd_x != 0 || machine.prize.y % gcd_y != 0 {
         return None; // No solution exists
     }
@@ -99,6 +125,32 @@ fn find_solution(machine: &ClawMachine) -> Option<(i64, i64)> {
 
     best_solution
 }
+
+fn find_solution_p2(machine: &ClawMachine) -> Option<(i64, i64)> {
+    let ax = machine.button_a.x_right;
+    let ay = machine.button_a.y_forward;
+    let bx = machine.button_b.x_right;
+    let by = machine.button_b.y_forward;
+    let px = machine.prize.x;
+    let py = machine.prize.y;
+    /* 
+     * Let's represent this as a matrix.
+     * 
+     * [ 94 22 ] [a] = 10...8400
+     * [ 34 67 ] [b] = 10...5400
+     *
+     * [ ax bx ]      [a]   = px
+     * [ ay by ]      [b]   = py
+     * coefficieents, step, prize
+     *
+     * AX = B
+     * X = IB, where I is in the inverse of A
+     * So the first question is, does the inverse exist.
+     */
+    // println!("inverse {:?}",  .... time to read a math page );
+    None
+}
+
 
 fn create_machines(raw: String) -> Vec<ClawMachine> {
     let tuples: Vec<(i64, i64)> = raw
