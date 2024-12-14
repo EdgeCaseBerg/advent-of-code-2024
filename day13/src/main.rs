@@ -3,8 +3,7 @@ use std::error::Error;
 use std::env;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // let maybe_filename = get_filename_from_args();
-    let maybe_filename = Some(String::from("../input.txt"));
+    let maybe_filename = get_filename_from_args();
     if maybe_filename.is_none() {
         return Err("No file provided".into());
     }
@@ -58,8 +57,8 @@ impl ClawMachine {
     }
     fn correct_conversion(&self) -> ClawMachine {
         ClawMachine {
-            button_a: self.button_a.clone(),
-            button_b: self.button_b.clone(),
+            button_a: self.button_a,
+            button_b: self.button_b,
             prize: Location {
                 x: self.prize.x + 10_000_000_000_000,
                 y: self.prize.y + 10_000_000_000_000,
@@ -201,7 +200,7 @@ fn create_machines(raw: String) -> Vec<ClawMachine> {
         let a = a.unwrap();
         let b = iter.next().unwrap();
         let p = iter.next().unwrap();
-        machines.push(ClawMachine::new(a.clone(), b.clone(), p.clone()))
+        machines.push(ClawMachine::new(*a, *b, *p))
     }
 
     machines
