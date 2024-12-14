@@ -2,6 +2,7 @@ pub mod util;
 use std::fs;
 use std::error::Error;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut maybe_filename = util::get_filename_from_args();
@@ -11,10 +12,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let raw_data: String = fs::read_to_string(maybe_filename.unwrap())?;
     let robots = parse(&raw_data);
-    for robot in robots.iter() {
-        robot.huh();
-    }
     part1(robots.clone());
+    part2(robots.clone());
     
     Ok(())
 }
@@ -59,6 +58,64 @@ fn part1(robots: Vec<Robot>) {
     println!("Safety Factor {:?}", safety_factor);
 }
 
+// 14759 too high
+// 9918 too high (weird long bunch of crap)
+// 29 too low (it was weird long straight line of crap)
+fn part2(robots: Vec<Robot>) {
+    let space_width_and_height = (101, 103);
+    let seconds = 9918;
+    let mut robots = robots.clone();
+    let mut set = HashSet::new();
+    for s in 0..seconds {
+        for robot in &mut robots {
+            robot.step_in(space_width_and_height);
+            set.insert(robot.p);
+        }
+        if is_suspiciously_like_a_christmas_tree(&set, space_width_and_height) {
+            println!("robots after {} seconds", s + 1);
+            print_robots(&set, space_width_and_height);    
+        }
+        set.clear();
+    }
+}
+
+fn is_suspiciously_like_a_christmas_tree(robots: &HashSet<(i32, i32)>, in_space: (i32,i32)) -> bool {
+    let (w, h) = in_space;
+    let sussy_size = w / 4;
+    for x in 0..w {
+        let mut in_same_row_near_each_other_count = 0;
+        for y in 0..h {
+            if robots.get(&(x,y)).is_some() {
+                in_same_row_near_each_other_count = 0;
+                for sus_factor in 0..=sussy_size {
+                    if robots.get(&(x + sus_factor, y)).is_some() {
+                        in_same_row_near_each_other_count += 1;
+                    }
+                }
+            }
+        }
+        if in_same_row_near_each_other_count > sussy_size {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn print_robots(robots: &HashSet<(i32, i32)>, in_space: (i32,i32)) {
+    let (w, h) = in_space;
+    for x in 0..w {
+        for y in 0..h {
+            if robots.contains(&(x,y)) {
+                print!("1");
+            } else {
+                print!(" ")
+            }
+        }
+        println!("");
+    }
+    println!("---------------------------------------------------------------");
+}
+
 #[derive(Clone, Debug)]
 struct Robot {
     p: (i32, i32),
@@ -100,10 +157,6 @@ impl Robot {
             (false, true)  => Quadrant::TopRight,
             (false, false) => Quadrant::BottomRight,
         }
-    }
-
-    fn huh(&self) {
-        println!("p={},{} v={},{}", self.p.0, self.p.1, self.v.0, self.v.1);
     }
 }
 
