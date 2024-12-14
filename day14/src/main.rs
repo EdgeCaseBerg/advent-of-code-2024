@@ -1,14 +1,16 @@
-pub mod util;
+
 use std::fs;
 use std::error::Error;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+pub mod util;
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut maybe_filename = util::get_filename_from_args();
+    let maybe_filename = util::get_filename_from_args();
     if maybe_filename.is_none() {
-        maybe_filename = Some(String::from("../input.txt"));
-        // return Err("No file provided".into());
+        // maybe_filename = Some(String::from("../input.txt"));
+        return Err("No file provided".into());
     }
     let raw_data: String = fs::read_to_string(maybe_filename.unwrap())?;
     let robots = parse(&raw_data);
@@ -98,7 +100,7 @@ fn is_suspiciously_like_a_christmas_tree(robots: &HashSet<(i32, i32)>, in_space:
             return true;
         }
     }
-    return false;
+    false
 }
 
 fn print_robots(robots: &HashSet<(i32, i32)>, in_space: (i32,i32)) {
@@ -108,12 +110,12 @@ fn print_robots(robots: &HashSet<(i32, i32)>, in_space: (i32,i32)) {
             if robots.contains(&(x,y)) {
                 print!("1");
             } else {
-                print!(" ")
+                print!("0")
             }
         }
-        println!("");
+        println!();
     }
-    println!("---------------------------------------------------------------");
+    println!();
 }
 
 #[derive(Clone, Debug)]
@@ -160,7 +162,7 @@ impl Robot {
     }
 }
 
-fn parse(raw_data: &String) -> Vec<Robot> {
+fn parse(raw_data: &str) -> Vec<Robot> {
     let mut robots: Vec<Robot> = Vec::new();
     for line in raw_data.lines() {
         let data: Vec<&str> = line.split(" ").collect();
@@ -170,7 +172,7 @@ fn parse(raw_data: &String) -> Vec<Robot> {
         let v = tuple_from_after_equals(raw_v[1]);
         robots.push(Robot { p, v });
     }
-    return robots;
+    robots
 }
 
 fn tuple_from_after_equals(after_equals: &str) -> (i32, i32) {
