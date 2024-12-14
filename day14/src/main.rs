@@ -24,6 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 // not 208205613 (not a - 1 issue on midrow for )
 // not 210912768 (didnt get height / width backwards in midrow)
 // not 215868576 (not =100 in range or a misread on timing...)
+// not 212407272 (not a problem with hashmap default)
 fn part1(robots: Vec<Robot>) {
     // Note our origin of 0,0 is the top left, negative y is up.
     // let space_width_and_height = (11, 7);
@@ -40,7 +41,8 @@ fn part1(robots: Vec<Robot>) {
     let mut count_by_quad = HashMap::new();
     for robot in &robots {
         let key = robot.report_quadrant(space_width_and_height);
-        count_by_quad.entry(key)
+
+        count_by_quad.entry(key.clone())
             .and_modify(|count| *count += 1)
             .or_insert(1);
     }
@@ -72,7 +74,6 @@ enum Quadrant {
     Middle
 }
 
-
 impl Robot {
     fn step_in(&mut self, in_space: (i32, i32)) {
         self.p.0 += self.v.0;
@@ -83,8 +84,8 @@ impl Robot {
     }
 
     fn report_quadrant(&self, in_space: (i32, i32)) -> Quadrant {
-        let mid_x  = in_space.0 /2 + 1;
-        let mid_y = in_space.1 /2 + 1;
+        let mid_x  = in_space.0 /2;
+        let mid_y = in_space.1 /2;
 
         if mid_x == self.p.0 || mid_y == self.p.1 {
             return Quadrant::Middle;
