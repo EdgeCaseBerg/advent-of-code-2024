@@ -2,6 +2,7 @@ use std::fs;
 use std::error::Error;
 use std::env;
 use std::collections::HashMap;
+use std::fmt;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // let maybe_filename = Some("../sample2.txt"); 
@@ -52,7 +53,7 @@ impl Stone {
             return OnBlink::Split
         }
 
-        return OnBlink::ReplaceStone
+        OnBlink::ReplaceStone
     }
 
     fn one() -> Stone {
@@ -73,10 +74,6 @@ impl Stone {
 
     fn to_new_stone(&self) -> Stone {
         Stone { value: self.value * 2024 }
-    }
-
-    fn to_string(&self) -> String {
-        self.value.to_string()
     }
 
     fn count_size_after_blinks(&self, number_of_blinks: u64, cache: &mut HashMap<(u64, u64), u64>) -> u64 {
@@ -108,6 +105,12 @@ impl Stone {
 
         cache.insert(key, num_stones);
         num_stones
+    }
+}
+
+impl fmt::Display for Stone {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
     }
 }
 
