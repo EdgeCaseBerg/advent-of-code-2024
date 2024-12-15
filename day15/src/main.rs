@@ -1,5 +1,9 @@
 pub mod boilerplate;
 
+use std::collections::HashSet;
+use std::collections::VecDeque;
+use std::iter::FromIterator;
+
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
     if let Err(ref problem) = raw_data {
@@ -24,10 +28,13 @@ fn part_1(warehouse: &mut Warehouse, robo_moves: &[RoboMoves]) {
 fn part_2(data: &str, robo_moves: &[RoboMoves]) {
     let base = Warehouse::from(&data);
     let mut large_warehouse = base.scale_up();
+    large_warehouse.print_map(true);
     for command in robo_moves {
+        println!("{:?}", command);
         large_warehouse.update(*command);
         large_warehouse.print_map(true);
     }
+    // too high 1555805
     println!("Sum of large warehouse GPS {:?}", large_warehouse.gps_sum());
 }
 
@@ -227,12 +234,247 @@ struct LargeWarehouse {
 
 impl LargeWarehouse {
     fn update(&mut self, command: RoboMoves) {
-        // match command {
-        //     RoboMoves::Up  => self.move_block(self.robot_position, (-1, 0)),
-        //     RoboMoves::Down => self.move_block(self.robot_position, (1, 0)),
-        //     RoboMoves::Right => self.move_block(self.robot_position, (0, 1)),
-        //     RoboMoves::Left => self.move_block(self.robot_position, (0, -1))
-        // };
+        match command {
+            // TODO: Check left and right counts match when trying to move vertical
+            RoboMoves::Up  => self.move_block(self.robot_position, (-1, 0)),
+            RoboMoves::Down => self.move_block(self.robot_position, (1, 0)),
+            RoboMoves::Right => self.move_block(self.robot_position, (0, 1)),
+            RoboMoves::Left => self.move_block(self.robot_position, (0, -1))
+        };
+    }
+
+    fn get_blocks_to_move(&mut self, start_pos: (usize, usize), dir: (isize, isize)) -> HashSet<(usize, usize)> {
+        let mut to_process = VecDeque::new();
+        let mut visited = HashSet::new();
+        
+        // bfs sorta kinda
+        to_process.push_back(start_pos);
+
+        match self.map[start_pos.0][start_pos.1] {
+            LargeWarehouseItem::BoxLeft => {
+                to_process.push_back((start_pos.0, start_pos.1 + 1));
+            }
+            LargeWarehouseItem::BoxRight => {
+                to_process.push_back((start_pos.0, start_pos.1 - 1));
+            }
+            _ => {}
+        }
+
+        while let Some((current_row, current_col)) = to_process.pop_front() {
+            // Calculate new position
+            let new_row = current_row as isize + dir.0;
+            let new_col = current_col as isize + dir.1;
+
+            if !self.in_bounds(new_row, new_col) {
+                // Out of bounds, cannot move
+                continue;
+            }
+
+            let new_row = new_row as usize;
+            let new_col = new_col as usize;
+
+            if visited.contains(&(current_row, current_col)) {
+                continue;
+            }
+            visited.insert((current_row, current_col));
+
+            match self.map[new_row][new_col] {
+                LargeWarehouseItem::BoxLeft => {
+                    // Add both parts of the double-wide box to the queue
+                    to_process.push_back((new_row, new_col));
+                    to_process.push_back((new_row, new_col + 1));
+                }
+                LargeWarehouseItem::BoxRight => {
+                    to_process.push_back((new_row, new_col));
+                    to_process.push_back((new_row, new_col - 1));
+                }
+                _ => { continue }
+            }
+        }
+        visited
+    }
+
+    fn move_block(&mut self, block_to_move: (usize, usize), dir: (isize, isize)) -> bool {
+        let new_row = block_to_move.0 as isize + dir.0;
+        let new_col = block_to_move.1 as isize + dir.1;
+        if !self.in_bounds(new_row, new_col) {
+            // We cannot move!
+            return false;
+        }
+
+
+        let new_row = new_row as usize;
+        let new_col = new_col as usize;
+        println!("R: {:?}, {:?} {:?}", self.robot_position, dir, self.map[new_row][new_col]);
+
+        match self.map[new_row][new_col] {
+            LargeWarehouseItem::Wall => false,
+            LargeWarehouseItem::Empty => {
+                self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
+                self.map[block_to_move.0][block_to_move.1] = LargeWarehouseItem::Empty;
+                println!("{:?} {:?}", self.map[new_row][new_col], self.map[block_to_move.0][block_to_move.1]);
+                if self.map[new_row][new_col] == LargeWarehouseItem::Robot {
+                    println!("Setting the robot position to {:?}", (new_row, new_col));
+                    self.robot_position = (new_row, new_col);
+                }
+                true
+            }
+            LargeWarehouseItem::BoxLeft | LargeWarehouseItem::BoxRight => {
+                let mut to_verify_can_move = self.get_blocks_to_move((new_row, new_col), dir);
+                if self.map[new_row][new_col] == LargeWarehouseItem::BoxLeft {
+                    let others = self.get_blocks_to_move((new_row, new_col + 1), dir);
+                    for other in others {
+                        to_verify_can_move.insert(other);
+                    }
+                    to_verify_can_move.insert((new_row, new_col + 1));
+                } else {
+                    let others = self.get_blocks_to_move((new_row, new_col - 1), dir);
+                    for other in others {
+                        to_verify_can_move.insert(other);
+                    }
+                    to_verify_can_move.insert((new_row, new_col - 1));
+                }
+                let to_verify_can_move = Vec::from_iter(to_verify_can_move);
+                println!("Boxes to move {:?}", to_verify_can_move);
+                match dir {
+                    (0, -1) => {
+                        // Pushing left, straight line case:
+                        let minimum_col = to_verify_can_move.into_iter().min_by_key(|(_, c)| *c).unwrap();
+                        let space_to_fill = (minimum_col.0, (minimum_col.1 as isize - 1) as usize);
+                        if !self.in_bounds(space_to_fill.0 as isize, space_to_fill.1 as isize) {
+                            // It's out of bounds somehow. Nope.
+                            return false;
+                        }
+                        if self.map[space_to_fill.0][space_to_fill.1] == LargeWarehouseItem::Empty {
+                            // We CAN move here!
+                            let mut fill_row = space_to_fill;
+                            loop {
+                                let cur = self.map[fill_row.0][fill_row.1];
+                                let moving =  self.map[fill_row.0][fill_row.1 + 1];
+
+                                self.map[fill_row.0][fill_row.1] = moving;
+                                self.map[fill_row.0][fill_row.1 + 1] = cur;
+                                if fill_row.0 == block_to_move.0 && fill_row.1 + 1 == block_to_move.1 {
+                                    self.robot_position = fill_row;
+                                    break;
+                                }
+                                fill_row = (fill_row.0, fill_row.1 + 1);
+                            }
+                            return true;
+                        }
+                    },
+                    (0, 1) => {
+                        // Pushing right, straight line case:
+                        let maximum_col = to_verify_can_move.into_iter().max_by_key(|(_, c)| *c).unwrap();
+                        let space_to_fill = (maximum_col.0, (maximum_col.1 as isize + 1) as usize);
+                        if !self.in_bounds(space_to_fill.0 as isize, space_to_fill.1 as isize) {
+                            // It's out of bounds somehow. Nope.
+                            return false;
+                        }
+                        if self.map[space_to_fill.0][space_to_fill.1] == LargeWarehouseItem::Empty {
+                            // We CAN move here!
+                            let mut fill_row = space_to_fill;
+                            loop {
+                                let cur = self.map[fill_row.0][fill_row.1];
+                                let moving =  self.map[fill_row.0][(fill_row.1 as isize - 1) as usize];
+
+                                self.map[fill_row.0][fill_row.1] = moving;
+                                self.map[fill_row.0][fill_row.1 - 1] = cur;
+
+                                if fill_row.0 == block_to_move.0 && (fill_row.1 as isize - 1) as usize == block_to_move.1 {
+                                    self.robot_position = fill_row;
+                                    break;
+                                }
+                                fill_row = (fill_row.0, fill_row.1 - 1);
+                            }
+                            return true;
+                        }
+                    }
+                    (1, 0) => {
+                        // The tricky case of down visually, positively numerical
+                        let maximum_row = to_verify_can_move.iter().max_by_key(|(r, _)| *r).unwrap();
+                        // for each of the items in that row, check if they can move down.
+                        let mut row_to_check = to_verify_can_move.iter().filter(|(r, _)| *r == maximum_row.0);
+                        let can_shift_all = row_to_check.all(|(r,c)| {
+                            let below = self.map[*r + 1][*c];
+                            below == LargeWarehouseItem::Empty
+                        });
+                        if !can_shift_all {
+                            return false;
+                        }
+
+                         let mut blocks = to_verify_can_move.clone();
+                        // The above has all blocks but not the robot. Move him too.
+                        blocks.push(self.robot_position);
+                        blocks.sort_by_key(|(r, _)| *r);
+                        for position in blocks.iter().rev() {
+                            let swap_row = position.0 + 1;
+                            let swap_col = position.1;
+                            let a = self.map[swap_row][swap_col];
+                            let b = self.map[position.0][position.1];
+                            self.map[position.0][position.1] = a;
+                            self.map[swap_row][swap_col] = b;
+                        }
+                        self.robot_position = (new_row, new_col);
+                        return false;
+                    }
+                    (-1, 0) => {
+                        // The tricky case of upwards visually, negative numerically
+                        let minimum_row = to_verify_can_move.iter().min_by_key(|(r, _)| *r).unwrap();
+                        // for each of the items in that row, check if they can move down.
+                        let mut row_to_check = to_verify_can_move.iter().filter(|(r, _)| *r == minimum_row.0);
+                        let can_shift_all = row_to_check.all(|(r,c)| {
+                            let above = self.map[*r - 1][*c];
+                            above == LargeWarehouseItem::Empty
+                        });
+                        if !can_shift_all {
+                            return false;
+                        }
+
+                        let mut blocks = to_verify_can_move.clone();
+                        // The above has all blocks but not the robot. Move him too.
+                        blocks.push(self.robot_position);
+                        blocks.sort_by_key(|(r, _)| *r);
+                        for position in blocks.iter() {
+                            let swap_row = position.0 - 1;
+                            let swap_col = position.1;
+                            let a = self.map[swap_row][swap_col];
+                            let b = self.map[position.0][position.1];
+                            self.map[position.0][position.1] = a;
+                            self.map[swap_row][swap_col] = b;
+                        }
+                        self.robot_position = (new_row, new_col);
+                        return false;
+                    }
+                    other => {
+                        println!("unexpected direction {:?}", other);
+                    } // temp ignore
+                }
+                false
+            },
+            LargeWarehouseItem::Robot => {
+                println!(" impossible unless screwed up somewheere ");
+                if !self.move_block((new_row, new_col), dir) {
+                    // If the next block cannot move, we cannot move.
+                    // println!("Could not move {:?} -> {:?}", block_to_move, (new_row, new_col));
+                    return false;
+                }
+
+                // The block will have moved to the empty space now.
+                self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
+                self.map[block_to_move.0][block_to_move.1] = LargeWarehouseItem::Empty;
+                if self.map[new_row][new_col] == LargeWarehouseItem::Robot {
+                    self.robot_position = (new_row, new_col);
+                }
+                true
+            }
+        }
+    }
+
+    fn in_bounds(&self, row: isize, col: isize) -> bool {
+        let within_rows = 0 <= row && row < self.map.len() as isize;
+        let within_cols = 0 <= col && col < self.map[0].len() as isize;
+        within_rows && within_cols
     }
 
     fn print_map(&self, are_we_debugging: bool) {
