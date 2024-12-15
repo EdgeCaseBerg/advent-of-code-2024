@@ -277,6 +277,35 @@ fn parse_warehouse(input: &str) -> Vec<Vec<WarehouseItem>> {
     rows
 }
 
+fn parse_large_warehouse(input: &str) -> LargeWarehouse {
+    let items: Vec<Vec<LargeWarehouseItem>> = input.lines().map(|line| {
+        line.chars().filter_map(|c| {
+            match c {
+                '#' => Some(LargeWarehouseItem::Wall),
+                '[' => Some(LargeWarehouseItem::BoxLeft),
+                ']' => Some(LargeWarehouseItem::BoxRight),
+                '.' => Some(LargeWarehouseItem::Empty),
+                '@' => Some(LargeWarehouseItem::Robot),
+                _ => None
+            }
+        }).collect()
+    }).collect();
+
+    let mut robot_position = (0,0);
+    for row in 0..items.len() {
+        for col in 0..items[row].len() {
+            if items[row][col] == LargeWarehouseItem::Robot {
+                robot_position = (row, col);
+            }
+        }
+    }
+
+    LargeWarehouse {
+        robot_position,
+        map: items
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum RoboMoves {
     Left,
@@ -345,22 +374,43 @@ mod main_tests {
                                 ##..@......[].[][]##
                                 ##......[][]..[]..##
                                 ####################".replace(" ", "");
-        let items: Vec<Vec<LargeWarehouseItem>> = verification_data.lines().map(|line| {
-            line.chars().filter_map(|c| {
-                match c {
-                    '#' => Some(LargeWarehouseItem::Wall),
-                    '[' => Some(LargeWarehouseItem::BoxLeft),
-                    ']' => Some(LargeWarehouseItem::BoxRight),
-                    '.' => Some(LargeWarehouseItem::Empty),
-                    '@' => Some(LargeWarehouseItem::Robot),
-                    _ => None
-                }
-            }).collect()
-        }).collect();
-        let m = LargeWarehouse {
-            robot_position: (7, 4),
-            map: items
-        };
+
+        
+        let m = parse_large_warehouse(&verification_data);
         assert_eq!(9021, m.gps_sum());
+    }
+
+    #[test]
+    fn scales_correctly() {
+        let verification_data = "   ##########
+                                    #..O..O.O#
+                                    #......O.#
+                                    #.OO..O.O#
+                                    #..O@..O.#
+                                    #O#..O...#
+                                    #O..O..O.#
+                                    #.OO.O.OO#
+                                    #....O...#
+                                    ##########".replace(" ", "");
+        let w = Warehouse::from(&verification_data);
+        let l = w.scale_up();
+        
+        let expected_large = "  ####################
+                                ##....[]....[]..[]##
+                                ##............[]..##
+                                ##..[][]....[]..[]##
+                                ##....[]@.....[]..##
+                                ##[]##....[]......##
+                                ##[]....[]....[]..##
+                                ##..[][]..[]..[][]##
+                                ##........[]......##
+                                ####################".replace(" ", "");
+        let e = parse_large_warehouse(&expected_large);
+
+        for row in 0..e.map.len() {
+            for col in 0..e.map[row].len() {
+                assert_eq!(e.map[row][col], l.map[row][col]);
+            }
+        }
     }
 }
