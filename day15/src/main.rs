@@ -9,3 +9,10 @@ fn main() {
     }
     println!("{:?}", raw_data);
 }
+
+mod main_tests {
+    #[test]
+    fn we_can_test_the_program() {
+        assert_eq!(1, 1);
+    }
+}
