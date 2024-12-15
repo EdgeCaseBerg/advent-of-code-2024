@@ -150,7 +150,6 @@ impl Warehouse {
         match self.map[new_row][new_col] {
             WarehouseItem::Wall => false,
             WarehouseItem::Empty => {
-                // println!("should move to empty {:?} -> {:?}", block_to_move, (new_row, new_col));
                 self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
                 self.map[block_to_move.0][block_to_move.1] = WarehouseItem::Empty;
                 if self.map[new_row][new_col] == WarehouseItem::Robot {
@@ -163,7 +162,6 @@ impl Warehouse {
                 // Apply force along direction
                 if !self.move_block((new_row, new_col), dir) {
                     // If the next block cannot move, we cannot move.
-                    // println!("Could not move {:?} -> {:?}", block_to_move, (new_row, new_col));
                     return false;
                 }
 
@@ -314,7 +312,6 @@ impl LargeWarehouse {
 
         let new_row = new_row as usize;
         let new_col = new_col as usize;
-        // println!("R: {:?}, {:?} {:?}", self.robot_position, dir, self.map[new_row][new_col]);
 
         match self.map[new_row][new_col] {
             LargeWarehouseItem::Wall => false,
@@ -398,12 +395,9 @@ impl LargeWarehouse {
                     }
                     (1, 0) => {
                         // The tricky case of down visually, positively numerical
-                        let maximum_row = to_verify_can_move.iter().max_by_key(|(r, _)| *r).unwrap();
-                        // for each of the items in that row, check if they can move down.
-                        let mut row_to_check = to_verify_can_move.iter().filter(|(r, _)| *r == maximum_row.0);
-                        let can_shift_all = row_to_check.all(|(r,c)| {
+                        let can_shift_all = to_verify_can_move.iter().all(|(r,c)| {
                             let below = self.map[*r + 1][*c];
-                            below == LargeWarehouseItem::Empty
+                            below != LargeWarehouseItem::Wall
                         });
                         if !can_shift_all {
                             return false;
@@ -426,12 +420,10 @@ impl LargeWarehouse {
                     }
                     (-1, 0) => {
                         // The tricky case of upwards visually, negative numerically
-                        let minimum_row = to_verify_can_move.iter().min_by_key(|(r, _)| *r).unwrap();
-                        // for each of the items in that row, check if they can move down.
-                        let mut row_to_check = to_verify_can_move.iter().filter(|(r, _)| *r == minimum_row.0);
-                        let can_shift_all = row_to_check.all(|(r,c)| {
+                        // for each of the block we would move check that it can
+                        let can_shift_all = to_verify_can_move.iter().all(|(r,c)| {
                             let above = self.map[*r - 1][*c];
-                            above == LargeWarehouseItem::Empty
+                            above != LargeWarehouseItem::Wall
                         });
                         if !can_shift_all {
                             return false;
@@ -461,8 +453,6 @@ impl LargeWarehouse {
             LargeWarehouseItem::Robot => {
                 println!(" impossible unless screwed up somewheere ");
                 if !self.move_block((new_row, new_col), dir) {
-                    // If the next block cannot move, we cannot move.
-                    // println!("Could not move {:?} -> {:?}", block_to_move, (new_row, new_col));
                     return false;
                 }
 
