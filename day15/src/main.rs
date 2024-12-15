@@ -709,4 +709,70 @@ mod main_tests {
         }
     }
 
+    #[test]
+    fn moves_left_correctly() {
+        let start_state = " ##########
+                            ##[][].@##
+                            ##..[]..##
+                            ##...[].##
+                            ##########
+                            ".replace(" ", "");
+        let end_state =  "  ##########
+                            ##[][]..##
+                            ##.[]...##
+                            ##[]@...##
+                            ##########
+                            ".replace(" ", "");
+        let commands: Vec<RoboMoves> = "<<<v<v>>>v<<<".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let mut w   = parse_large_warehouse(&start_state);
+        let end = parse_large_warehouse(&end_state);
+
+        for command in commands {
+            w.update(command);
+        }
+
+        for row in 0..w.map.len() {
+            for col in 0..w.map[row].len() {
+                if w.map[row][col] != end.map[row][col] {
+                    w.print_map(true);
+                }
+                assert_eq!(w.map[row][col], end.map[row][col]);
+            }
+        }
+        w.print_map(true);
+    }
+
+    #[test]
+    fn moves_right_correctly() {
+        let start_state = " ##########
+                            ##@.[][]##
+                            ##..[]..##
+                            ##.[]...##
+                            ##########
+                            ".replace(" ", "");
+        let end_state =  "  ##########
+                            ##..[][]##
+                            ##....[]##
+                            ##..@[].##
+                            ##########
+                            ".replace(" ", "");
+        let commands: Vec<RoboMoves> = ">>>>v>><<<<v>>".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let mut w   = parse_large_warehouse(&start_state);
+        let end = parse_large_warehouse(&end_state);
+
+        for command in commands {
+            w.update(command);
+        }
+
+        for row in 0..w.map.len() {
+            for col in 0..w.map[row].len() {
+                if w.map[row][col] != end.map[row][col] {
+                    w.print_map(true);
+                }
+                assert_eq!(w.map[row][col], end.map[row][col]);
+            }
+        }
+        w.print_map(true);
+    }
+
 }
