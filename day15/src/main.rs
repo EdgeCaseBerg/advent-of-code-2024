@@ -575,7 +575,7 @@ mod main_tests {
     use super::*;
 
     fn parse_large_warehouse(input: &str) -> LargeWarehouse {
-        let items: Vec<Vec<LargeWarehouseItem>> = input.lines().map(|line| {
+        let items: Vec<Vec<LargeWarehouseItem>> = input.lines().filter(|l| !l.is_empty()).map(|line| {
             line.chars().filter_map(|c| {
                 match c {
                     '#' => Some(LargeWarehouseItem::Wall),
@@ -616,7 +616,6 @@ mod main_tests {
                                 #OO....OO#
                                 ##########".replace(" ", "");
         let w = Warehouse::from(&verification_data);
-        println!("{:?}", w);
         assert_eq!(10092, w.gps_sum());
     }
 
@@ -1181,20 +1180,21 @@ mod main_tests {
                 ##..[]..##
                 ##.##[].##
                 ##......##
-                ##########
-                            ".replace(" ", "");
+                ##########".replace(" ", "");
         let end_state =  " 
-                ##########
-                ##......##
-                ##..@...##
-                ##..[]..##
-                ##.##[].##
-                ##......##
-                ##########
-                            ".replace(" ", "");
+                ########## 0
+                ##......## 1
+                ##..@...## 2
+                ##..[]..## 3
+                ##.##[].## 4 
+                ##......## 5
+                ########## 6
+                0123456789 ".replace(" ", "");
         let commands: Vec<RoboMoves> = "v".chars().filter_map(|c| RoboMoves::from(c)).collect();
         let mut w = parse_large_warehouse(&start_state);
         let end   = parse_large_warehouse(&end_state);
+
+        w.print_map(true);
 
         for command in commands {
             w.update(command);
