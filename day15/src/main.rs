@@ -10,6 +10,7 @@ fn main() {
     let mut warehouse = Warehouse::from(&data);
     let robo_moves = parse_robot_input(&data);
     part_1(&mut warehouse, &robo_moves);
+    part_2(&data, &robo_moves);
 }
 
 fn part_1(warehouse: &mut Warehouse, robo_moves: &[RoboMoves]) {
@@ -18,6 +19,16 @@ fn part_1(warehouse: &mut Warehouse, robo_moves: &[RoboMoves]) {
         warehouse.print_map(false);
     }
     println!("Sum of box GPS: {:?}", warehouse.gps_sum());
+}
+
+fn part_2(data: &str, robo_moves: &[RoboMoves]) {
+    let base = Warehouse::from(&data);
+    let mut large_warehouse = base.scale_up();
+    for command in robo_moves {
+        large_warehouse.update(*command);
+        large_warehouse.print_map(true);
+    }
+    println!("Sum of large warehouse GPS {:?}", large_warehouse.gps_sum());
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -45,6 +56,35 @@ impl WarehouseItem {
             WarehouseItem::Robot => '@',
             WarehouseItem::Box => 'O',
             WarehouseItem::Empty => '.',
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum LargeWarehouseItem {
+    Wall,
+    Robot,
+    BoxLeft, BoxRight,
+    Empty
+}
+
+impl LargeWarehouseItem {
+    fn from(small: WarehouseItem) -> (LargeWarehouseItem, LargeWarehouseItem) {
+        match small {
+            WarehouseItem::Wall  => (LargeWarehouseItem::Wall, LargeWarehouseItem::Wall),
+            WarehouseItem::Robot => (LargeWarehouseItem::Robot, LargeWarehouseItem::Empty),
+            WarehouseItem::Box   => (LargeWarehouseItem::BoxLeft, LargeWarehouseItem::BoxRight),
+            WarehouseItem::Empty => (LargeWarehouseItem::Empty, LargeWarehouseItem::Empty)
+        }
+    }
+
+    fn display_char(&self) -> char {
+        match self {
+            LargeWarehouseItem::Wall => '#',
+            LargeWarehouseItem::Robot => '@',
+            LargeWarehouseItem::BoxLeft => '[',
+            LargeWarehouseItem::BoxRight => ']',
+            LargeWarehouseItem::Empty => '.',
         }
     }
 }
@@ -152,6 +192,75 @@ impl Warehouse {
         }
         println!();
     }
+
+    fn scale_up(&self) -> LargeWarehouse {
+        let scaled: Vec<Vec<LargeWarehouseItem>> = self.map.iter().map(|row| {
+            let mut scaled_columns = Vec::new();
+            row.iter().for_each(|col| {
+                let (left, right) = LargeWarehouseItem::from(*col);
+                scaled_columns.push(left);
+                scaled_columns.push(right);
+            });
+            scaled_columns
+        }).collect();
+
+        let mut robot_position = (0,0);
+        for row in 0..scaled.len() {
+            for col in 0..scaled[row].len() {
+                if scaled[row][col] == LargeWarehouseItem::Robot {
+                    robot_position = (row, col);
+                }
+            }
+        }
+
+        LargeWarehouse {
+            robot_position,
+            map: scaled
+        }
+    }
+}
+
+struct LargeWarehouse {
+    robot_position: (usize, usize),
+    map: Vec<Vec<LargeWarehouseItem>>
+}
+
+impl LargeWarehouse {
+    fn update(&mut self, command: RoboMoves) {
+        // match command {
+        //     RoboMoves::Up  => self.move_block(self.robot_position, (-1, 0)),
+        //     RoboMoves::Down => self.move_block(self.robot_position, (1, 0)),
+        //     RoboMoves::Right => self.move_block(self.robot_position, (0, 1)),
+        //     RoboMoves::Left => self.move_block(self.robot_position, (0, -1))
+        // };
+    }
+
+    fn print_map(&self, are_we_debugging: bool) {
+        if !are_we_debugging {
+            return;
+        }
+        for row in 0..self.map.len() {
+            for col in 0..self.map[row].len() {
+                print!(" {:?} ", self.map[row][col].display_char());
+            }
+            println!();
+        }
+        println!();
+    }
+
+    fn gps_sum(&self) -> u64 {
+        let mut sum = 0;
+        for row in 0..self.map.len() {
+            for col in 0..self.map[row].len() {
+                // Note the writing is a bit ambigious on the closest edge, does that mean closest edge of the box to the left wall?
+                // or does it mean the right edge could be close to the right wall?
+                if self.map[row][col] == LargeWarehouseItem::BoxLeft {
+                    sum += 100 * row as u64 + col as u64;
+                }
+            }
+        }
+        sum
+    }
 }
 
 fn parse_warehouse(input: &str) -> Vec<Vec<WarehouseItem>> {
@@ -222,5 +331,36 @@ mod main_tests {
         let w = Warehouse::from(&verification_data);
         println!("{:?}", w);
         assert_eq!(10092, w.gps_sum());
+    }
+
+    #[test]
+    fn calculates_gps_sum_correctly_large_warehouse() {
+        let verification_data ="####################
+                                ##[].......[].[][]##
+                                ##[]...........[].##
+                                ##[]........[][][]##
+                                ##[]......[]....[]##
+                                ##..##......[]....##
+                                ##..[]............##
+                                ##..@......[].[][]##
+                                ##......[][]..[]..##
+                                ####################".replace(" ", "");
+        let items: Vec<Vec<LargeWarehouseItem>> = verification_data.lines().map(|line| {
+            line.chars().filter_map(|c| {
+                match c {
+                    '#' => Some(LargeWarehouseItem::Wall),
+                    '[' => Some(LargeWarehouseItem::BoxLeft),
+                    ']' => Some(LargeWarehouseItem::BoxRight),
+                    '.' => Some(LargeWarehouseItem::Empty),
+                    '@' => Some(LargeWarehouseItem::Robot),
+                    _ => None
+                }
+            }).collect()
+        }).collect();
+        let m = LargeWarehouse {
+            robot_position: (7, 4),
+            map: items
+        };
+        assert_eq!(9021, m.gps_sum());
     }
 }
