@@ -15,8 +15,7 @@ fn main() {
 fn part_1(warehouse: &mut Warehouse, robo_moves: &[RoboMoves]) {
     for command in robo_moves {
         warehouse.update(*command);
-        println!("Robot moved {:?}", command);
-        warehouse.print_map();
+        warehouse.print_map(false);
     }
     println!("Sum of box GPS: {:?}", warehouse.gps_sum());
 }
@@ -95,8 +94,12 @@ impl Warehouse {
         match self.map[new_row][new_col] {
             WarehouseItem::Wall => false,
             WarehouseItem::Empty => {
+                // println!("should move to empty {:?} -> {:?}", block_to_move, (new_row, new_col));
                 self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
                 self.map[block_to_move.0][block_to_move.1] = WarehouseItem::Empty;
+                if self.map[new_row][new_col] == WarehouseItem::Robot {
+                    self.robot_position = (new_row, new_col);
+                }
                 true
             }
             _ => { 
@@ -104,12 +107,16 @@ impl Warehouse {
                 // Apply force along direction
                 if !self.move_block((new_row, new_col), dir) {
                     // If the next block cannot move, we cannot move.
+                    // println!("Could not move {:?} -> {:?}", block_to_move, (new_row, new_col));
                     return false;
                 }
 
                 // The block will have moved to the empty space now.
                 self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
                 self.map[block_to_move.0][block_to_move.1] = WarehouseItem::Empty;
+                if self.map[new_row][new_col] == WarehouseItem::Robot {
+                    self.robot_position = (new_row, new_col);
+                }
                 true
             }
         }
@@ -133,7 +140,10 @@ impl Warehouse {
         sum
     }
 
-    fn print_map(&self) {
+    fn print_map(&self, are_we_debugging: bool) {
+        if !are_we_debugging {
+            return;
+        }
         for row in 0..self.map.len() {
             for col in 0..self.map[row].len() {
                 print!(" {:?} ", self.map[row][col].display_char());
