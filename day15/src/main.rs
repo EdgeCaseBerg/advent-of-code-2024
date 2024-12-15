@@ -479,7 +479,7 @@ impl LargeWarehouse {
 
     fn in_bounds(&self, row: isize, col: isize) -> bool {
         let within_rows = 0 <= row && row < self.map.len() as isize;
-        let within_cols = 0 <= col && col < self.map[0].len() as isize;
+        let within_cols = 0 <= col && col < self.map[row as usize].len() as isize;
         within_rows && within_cols
     }
 
