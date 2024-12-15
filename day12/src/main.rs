@@ -125,16 +125,16 @@ impl Region {
                 let new_row = plot.0 as isize + d_row;
                 let new_col = plot.1 as isize + d_col;
                 if self.touching.contains(&(new_row, new_col)) {
-                    let key = Direction::of(d_row.clone(), d_col.clone());
+                    let key = Direction::of(*d_row, *d_col);
                     let mut plots_with_sides_this_way = Vec::new();
                     if sides_and_directions.contains_key(&key) {
                         let mut already_found: Vec<(usize, usize)> = sides_and_directions.get(&key).unwrap().to_vec();
-                        already_found.push(plot.clone());
+                        already_found.push(*plot);
                         plots_with_sides_this_way = already_found;
                         sides_and_directions.remove(&key);
                         sides_and_directions.insert(key, plots_with_sides_this_way);
                     } else {
-                        plots_with_sides_this_way.push(plot.clone());
+                        plots_with_sides_this_way.push(*plot);
                         sides_and_directions.insert(key, plots_with_sides_this_way);
                     }
                     
@@ -150,7 +150,7 @@ impl Region {
                     match sides_and_directions.get(direction) {
                         None => {}
                         Some(plots_with_side_facing_up) => {
-                            let mut by_row = plots_with_side_facing_up.into_iter().cloned().collect::<Vec<_>>();
+                            let mut by_row = plots_with_side_facing_up.to_vec();
                             by_row.sort_by_key(|(r, _)| *r);
                             // Now we just find any deltas in the col per row to count how many upward facing sides we've got :)
                             let mut sides = 1;
@@ -171,7 +171,7 @@ impl Region {
                                 }
                             }
 
-                            for (_, columns) in &col_by_row {
+                            for columns in col_by_row.values() {
                                 if columns.len() > 1 {
                                     let mut cols = columns.clone();
                                     cols.sort();
@@ -205,7 +205,7 @@ impl Region {
                     match sides_and_directions.get(direction) {
                         None => {}
                         Some(plots_with_side_facing_up) => {
-                            let mut by_col = plots_with_side_facing_up.into_iter().cloned().collect::<Vec<_>>();
+                            let mut by_col = plots_with_side_facing_up.to_vec();
                             by_col.sort_by_key(|(_, c)| *c);
                             // Now we just find any deltas in the col per row to count how many upward facing sides we've got :)
                             let mut sides = 1;
@@ -226,7 +226,7 @@ impl Region {
                                 }
                             }
 
-                            for (col, rows) in &row_by_col {
+                            for rows in row_by_col.values() {
                                 if rows.len() > 1 {
                                     let mut rows = rows.clone();
                                     rows.sort();
@@ -288,7 +288,7 @@ fn make_matrix(raw_data: &str) -> Vec<Vec<Plant>> {
     matrix
 }
 
-fn find_regions(plots: &Vec<Vec<Plant>>) -> Vec<Region> {
+fn find_regions(plots: &[Vec<Plant>]) -> Vec<Region> {
     let rows = plots.len();
     let cols = plots[0].len();
 
@@ -299,11 +299,11 @@ fn find_regions(plots: &Vec<Vec<Plant>>) -> Vec<Region> {
             if visited_already.contains(&(row,col)) {
                 continue;
             }
-            let plant = plots[row][col].clone();
+            let plant = plots[row][col];
             // Find the plot.
-            let region = bfs(&plots, &plant, row, col);
+            let region = bfs(plots, &plant, row, col);
             region.plants.iter().for_each(|coord| {
-                visited_already.insert(coord.clone());    
+                visited_already.insert(*coord);    
             });
             regions.push(region)
         }
@@ -311,7 +311,7 @@ fn find_regions(plots: &Vec<Vec<Plant>>) -> Vec<Region> {
     regions
 }
 
-fn bfs(plots: &Vec<Vec<Plant>>, of_type: &Plant, start_row: usize, start_col: usize) -> Region {
+fn bfs(plots: &[Vec<Plant>], of_type: &Plant, start_row: usize, start_col: usize) -> Region {
     let rows = plots.len();
     let cols = plots[0].len();
 
@@ -329,7 +329,7 @@ fn bfs(plots: &Vec<Vec<Plant>>, of_type: &Plant, start_row: usize, start_col: us
         plant_here.value == of_type.value
     };
 
-    let mut region = Region::of(of_type.clone());
+    let mut region = Region::of(*of_type);
     let mut queue = VecDeque::new();
     let mut visited = HashSet::new();
     queue.push_back((start_row, start_col));
@@ -352,7 +352,7 @@ fn bfs(plots: &Vec<Vec<Plant>>, of_type: &Plant, start_row: usize, start_col: us
         }
     }
 
-    if region.plants.len() == 0 {
+    if region.plants.is_empty() {
         region.add_plot((start_row, start_col));
     }
 
