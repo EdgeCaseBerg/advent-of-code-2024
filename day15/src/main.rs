@@ -10,6 +10,10 @@ fn main() {
     let data = raw_data.unwrap();
     let warehouse_map = parse_warehouse(&data);
     let robo_moves = parse_robot_input(&data);
+    part_1(&warehouse_map, &robo_moves);
+}
+
+fn part_1(warehouse_map: &[Vec<WarehouseItem>], robo_moves: &[RoboMoves]) {
     println!("{:?}", warehouse_map);
     println!("{:?}", robo_moves);
 }
