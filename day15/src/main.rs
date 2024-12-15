@@ -8,17 +8,19 @@ fn main() {
         return;
     }
     let data = raw_data.unwrap();
-    let warehouse_map = parse_warehouse(&data);
+    let mut warehouse = Warehouse::from(&data);
     let robo_moves = parse_robot_input(&data);
-    part_1(&warehouse_map, &robo_moves);
+    part_1(&mut warehouse, &robo_moves);
 }
 
-fn part_1(warehouse_map: &[Vec<WarehouseItem>], robo_moves: &[RoboMoves]) {
-    println!("{:?}", warehouse_map);
-    println!("{:?}", robo_moves);
+fn part_1(warehouse: &mut Warehouse, robo_moves: &[RoboMoves]) {
+    for command in robo_moves {
+        warehouse.update(*command);
+    }
+    println!("Sum of box GPS: {:?}", warehouse.gps_sum());
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum WarehouseItem {
     Wall,
     Robot,
@@ -38,6 +40,46 @@ impl WarehouseItem {
     }
 }
 
+#[derive(Debug)]
+struct Warehouse {
+    robot_position: (usize, usize),
+    map: Vec<Vec<WarehouseItem>>
+}
+
+impl Warehouse {
+    fn from(input: &str) -> Warehouse {
+        let map = parse_warehouse(input);
+        let mut position = (0, 0);
+        for row in 0..map.len() {
+            for col in 0..map[row].len() {
+                if map[row][col] == WarehouseItem::Robot {
+                    position = (row, col)
+                }
+            }
+        }
+        Warehouse {
+            map,
+            robot_position: position
+        }
+    }
+
+    fn update(&mut self, command: RoboMoves) {
+
+    }
+
+    fn gps_sum(&self) -> u64 {
+        let mut sum = 0;
+        for row in 0..self.map.len() {
+            for col in 0..self.map[row].len() {
+                if self.map[row][col] == WarehouseItem::Box {
+                    sum += 100 * row as u64 + col as u64;
+                }
+            }
+        }
+        sum
+    }
+}
+
 fn parse_warehouse(input: &str) -> Vec<Vec<WarehouseItem>> {
     let mut rows = Vec::new();
     input.lines()
@@ -52,7 +94,7 @@ fn parse_warehouse(input: &str) -> Vec<Vec<WarehouseItem>> {
     rows
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum RoboMoves {
     Left,
     Up,
@@ -88,8 +130,22 @@ fn parse_robot_input(input: &str) -> Vec<RoboMoves> {
 }
 
 mod main_tests {
+    use super::*;
+
     #[test]
-    fn we_can_test_the_program() {
-        assert_eq!(1, 1);
+    fn calculates_gps_sum_correctly() {
+        let verification_data = "##########
+                                #.O.O.OOO#
+                                #........#
+                                #OO......#
+                                #OO@.....#
+                                #O#.....O#
+                                #O.....OO#
+                                #O.....OO#
+                                #OO....OO#
+                                ##########".replace(" ", "");
+        let w = Warehouse::from(&verification_data);
+        println!("{:?}", w);
+        assert_eq!(10092, w.gps_sum());
     }
 }
