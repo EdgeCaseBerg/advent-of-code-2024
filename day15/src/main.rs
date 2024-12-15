@@ -193,10 +193,11 @@ impl Warehouse {
             return;
         }
         for row in 0..self.map.len() {
+            let mut out_col = String::new();
             for col in 0..self.map[row].len() {
-                print!(" {:?} ", self.map[row][col].display_char());
+                out_col.push(self.map[row][col].display_char());
             }
-            println!();
+            println!("{}", out_col);
         }
         println!();
     }
@@ -312,9 +313,7 @@ impl LargeWarehouse {
             LargeWarehouseItem::Empty => {
                 self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
                 self.map[block_to_move.0][block_to_move.1] = LargeWarehouseItem::Empty;
-                println!("{:?} {:?}", self.map[new_row][new_col], self.map[block_to_move.0][block_to_move.1]);
                 if self.map[new_row][new_col] == LargeWarehouseItem::Robot {
-                    println!("Setting the robot position to {:?}", (new_row, new_col));
                     self.robot_position = (new_row, new_col);
                 }
                 true
@@ -335,7 +334,6 @@ impl LargeWarehouse {
                     to_verify_can_move.insert((new_row, new_col - 1));
                 }
                 let to_verify_can_move = Vec::from_iter(to_verify_can_move);
-                println!("Boxes to move {:?}", to_verify_can_move);
                 match dir {
                     (0, -1) => {
                         // Pushing left, straight line case:
@@ -482,10 +480,11 @@ impl LargeWarehouse {
             return;
         }
         for row in 0..self.map.len() {
+            let mut out_col = String::new();
             for col in 0..self.map[row].len() {
-                print!(" {:?} ", self.map[row][col].display_char());
+                out_col.push(self.map[row][col].display_char());
             }
-            println!();
+            println!("{}", out_col);
         }
         println!();
     }
@@ -744,19 +743,21 @@ mod main_tests {
 
     #[test]
     fn moves_right_correctly() {
-        let start_state = " ############
-                            ##@.[][]..##
-                            ##..[]....##
-                            ##.[].....##
-                            ############
+        let start_state = " ##############
+                            ##@[][].....##
+                            ##.[].......##
+                            ##.[].......##
+                            ##.[][][][].##
+                            ##############
                             ".replace(" ", "");
-        let end_state =  "  ############
-                            ##....[][]##
-                            ##......[]##
-                            ##....@[].##
-                            ############
+        let end_state =  "  ##############
+                            ##......[][]##
+                            ##......[]..##
+                            ##.....[]...##
+                            ##.@[][][][]##
+                            ##############
                             ".replace(" ", "");
-        let commands: Vec<RoboMoves> = ">>>>> <<<<< v >>>>> <<<<< v >>>>".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let commands: Vec<RoboMoves> = ">>>>> <<<<< v >>>>> <<<<< v >>>> <<<< v >".chars().filter_map(|c| RoboMoves::from(c)).collect();
         let mut w   = parse_large_warehouse(&start_state);
         let end = parse_large_warehouse(&end_state);
 
@@ -921,6 +922,187 @@ mod main_tests {
             }
         }
         w.print_map(true);
-    }    
+    }
 
+    #[test]
+    fn move_a_case_around_again() {
+        let start_state = " ####################
+                            ##................##
+                            ##.....[].........##
+                            ##....[]..[]......##
+                            ##.....[][].......##
+                            ##......[]........##
+                            ##......@.........##
+                            ##................##
+                            ##................##
+                            ####################
+                            ".replace(" ", "");
+        let end_state =  "  ####################
+                            ##.....[].........##
+                            ##....[]..[]......##
+                            ##.....[].........##
+                            ##................##
+                            ##................##
+                            ##.......@........##
+                            ##.......[].......##
+                            ##......[]........##
+                            ####################
+                            ".replace(" ", "");
+        let commands: Vec<RoboMoves> = "^>>>>^^^^^<<<vvvvvvvvvv".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let mut w   = parse_large_warehouse(&start_state);
+        let end = parse_large_warehouse(&end_state);
+
+        for command in commands {
+            w.update(command);
+        }
+
+        for row in 0..w.map.len() {
+            for col in 0..w.map[row].len() {
+                if w.map[row][col] != end.map[row][col] {
+                    w.print_map(true);
+                }
+                assert_eq!(w.map[row][col], end.map[row][col]);
+            }
+        }
+        w.print_map(true);
+        assert_eq!(2347, w.gps_sum());
+    }
+
+    #[test]
+    fn does_not_move_a_wall_to_the_right() {
+        let start_state = " ##############
+                            ##.@[].#....##
+                            ##..[][]..#.##
+                            ##############
+                            ".replace(" ", "");
+        let end_state =  "  ##############
+                            ##...[]#....##
+                            ##...@[][]#.##
+                            ##############
+                            ".replace(" ", "");
+        let commands: Vec<RoboMoves> = ">>> <<< v >>>>>>".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let mut w   = parse_large_warehouse(&start_state);
+        let end = parse_large_warehouse(&end_state);
+
+        for command in commands {
+            w.update(command);
+        }
+
+        for row in 0..w.map.len() {
+            for col in 0..w.map[row].len() {
+                if w.map[row][col] != end.map[row][col] {
+                    w.print_map(true);
+                }
+                assert_eq!(w.map[row][col], end.map[row][col]);
+            }
+        }
+        w.print_map(true);
+    }
+
+    #[test]
+    fn does_not_move_a_wall_to_the_left() {
+        let start_state = " ##############
+                            ##.#.[]..@..##
+                            ##.#.[][]...##
+                            ##.#........##
+                            ##############
+                            ".replace(" ", "");
+        let end_state =  "  ##############
+                            ##.#[]......##
+                            ##.#[][]@...##
+                            ##.#........##
+                            ##############
+                            ".replace(" ", "");
+        let commands: Vec<RoboMoves> = "<<< >>>> v <<<<<".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let mut w   = parse_large_warehouse(&start_state);
+        let end = parse_large_warehouse(&end_state);
+
+        for command in commands {
+            w.update(command);
+        }
+
+        for row in 0..w.map.len() {
+            for col in 0..w.map[row].len() {
+                if w.map[row][col] != end.map[row][col] {
+                    w.print_map(true);
+                }
+                assert_eq!(w.map[row][col], end.map[row][col]);
+            }
+        }
+        w.print_map(true);
+    }
+
+    #[test]
+    fn does_not_move_a_wall_upwards() {
+        let start_state = " ##############
+                            ##..........##
+                            ##..##......##
+                            ##....#.....##
+                            ##..[]@.....##
+                            ##..........##
+                            ##############
+                            ".replace(" ", "");
+        let end_state =  "  ##############
+                            ##..........##
+                            ##..##......##
+                            ##.[].#.....##
+                            ##..@.......##
+                            ##..........##
+                            ##############
+                            ".replace(" ", "");
+        let commands: Vec<RoboMoves> = "^ > ^ <<< v << v < ^^^".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let mut w   = parse_large_warehouse(&start_state);
+        let end = parse_large_warehouse(&end_state);
+
+        for command in commands {
+            w.update(command);
+        }
+
+        for row in 0..w.map.len() {
+            for col in 0..w.map[row].len() {
+                if w.map[row][col] != end.map[row][col] {
+                    w.print_map(true);
+                }
+                assert_eq!(w.map[row][col], end.map[row][col]);
+            }
+        }
+        w.print_map(true);
+    }
+
+    #[test]
+    fn does_not_move_a_wall_downwards() {
+        let start_state = " ##############
+                            ##....@.....##
+                            ##.[].#.....##
+                            ##..........##
+                            ##..##......##
+                            ##..........##
+                            ##############
+                            ".replace(" ", "");
+        let end_state =  "  ##############
+                            ##..........##
+                            ##..@.#.....##
+                            ##.[].......##
+                            ##..##......##
+                            ##..........##
+                            ##############
+                            ".replace(" ", "");
+        let commands: Vec<RoboMoves> = "vvv << vvv".chars().filter_map(|c| RoboMoves::from(c)).collect();
+        let mut w = parse_large_warehouse(&start_state);
+        let end   = parse_large_warehouse(&end_state);
+
+        for command in commands {
+            w.update(command);
+        }
+
+        for row in 0..w.map.len() {
+            for col in 0..w.map[row].len() {
+                if w.map[row][col] != end.map[row][col] {
+                    w.print_map(true);
+                }
+                assert_eq!(w.map[row][col], end.map[row][col]);
+            }
+        }
+        w.print_map(true);
+    }  
 }
