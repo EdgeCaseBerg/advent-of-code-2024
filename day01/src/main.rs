@@ -3,17 +3,6 @@ use std::path;
 use std::env;
 use std::collections::HashMap;
 
-
-fn foo(i: i32) {
-	println!("{}", i);
-}
-
-fn bar() {}
-
-fn baz() {
-	foo(bar);
-}
-
 fn main() {
 	let input = 
 		get_filename_from_args()
