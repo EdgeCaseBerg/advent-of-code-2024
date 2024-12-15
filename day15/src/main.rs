@@ -1,6 +1,5 @@
 pub mod boilerplate;
 
-
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
     if let Err(ref problem) = raw_data {
@@ -16,11 +15,13 @@ fn main() {
 fn part_1(warehouse: &mut Warehouse, robo_moves: &[RoboMoves]) {
     for command in robo_moves {
         warehouse.update(*command);
+        println!("Robot moved {:?}", command);
+        warehouse.print_map();
     }
     println!("Sum of box GPS: {:?}", warehouse.gps_sum());
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum WarehouseItem {
     Wall,
     Robot,
@@ -36,6 +37,15 @@ impl WarehouseItem {
             'O' => Some(WarehouseItem::Box),
             '.' => Some(WarehouseItem::Empty),
             _ => None
+        }
+    }
+
+    fn display_char(&self) -> char {
+        match self {
+            WarehouseItem::Wall => '#',
+            WarehouseItem::Robot => '@',
+            WarehouseItem::Box => 'O',
+            WarehouseItem::Empty => '.',
         }
     }
 }
@@ -64,7 +74,51 @@ impl Warehouse {
     }
 
     fn update(&mut self, command: RoboMoves) {
+        match command {
+            RoboMoves::Up  => self.move_block(self.robot_position, (-1, 0)),
+            RoboMoves::Down => self.move_block(self.robot_position, (1, 0)),
+            RoboMoves::Right => self.move_block(self.robot_position, (0, 1)),
+            RoboMoves::Left => self.move_block(self.robot_position, (0, -1))
+        };
+    }
 
+    fn move_block(&mut self, block_to_move: (usize, usize), dir: (isize, isize)) -> bool {
+        let new_row = block_to_move.0 as isize + dir.0;
+        let new_col = block_to_move.1 as isize + dir.1;
+        if !self.in_bounds(new_row, new_col) {
+            // We cannot move!
+            return false;
+        }
+        let new_row = new_row as usize;
+        let new_col = new_col as usize;
+
+        match self.map[new_row][new_col] {
+            WarehouseItem::Wall => false,
+            WarehouseItem::Empty => {
+                self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
+                self.map[block_to_move.0][block_to_move.1] = WarehouseItem::Empty;
+                true
+            }
+            _ => { 
+                // Otherwise it's the box because there's only ever one robot and the robot doesn't push itself.
+                // Apply force along direction
+                if !self.move_block((new_row, new_col), dir) {
+                    // If the next block cannot move, we cannot move.
+                    return false;
+                }
+
+                // The block will have moved to the empty space now.
+                self.map[new_row][new_col] = self.map[block_to_move.0][block_to_move.1];
+                self.map[block_to_move.0][block_to_move.1] = WarehouseItem::Empty;
+                true
+            }
+        }
+    }
+
+    fn in_bounds(&self, row: isize, col: isize) -> bool {
+        let within_rows = 0 <= row && row < self.map.len() as isize;
+        let within_cols = 0 <= col && col < self.map[0].len() as isize;
+        within_rows && within_cols
     }
 
     fn gps_sum(&self) -> u64 {
@@ -77,6 +131,16 @@ impl Warehouse {
             }
         }
         sum
+    }
+
+    fn print_map(&self) {
+        for row in 0..self.map.len() {
+            for col in 0..self.map[row].len() {
+                print!(" {:?} ", self.map[row][col].display_char());
+            }
+            println!();
+        }
+        println!();
     }
 }
 
@@ -129,6 +193,7 @@ fn parse_robot_input(input: &str) -> Vec<RoboMoves> {
     moves
 }
 
+#[cfg(test)]
 mod main_tests {
     use super::*;
 
