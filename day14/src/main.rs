@@ -181,3 +181,34 @@ fn tuple_from_after_equals(after_equals: &str) -> (i32, i32) {
     let py: i32 = raw[1].parse().unwrap();
     (px, py)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wraps_positively() {
+        let space = (2,2);
+        let mut m = Robot {
+            p: (0, 0),
+            v: (1, 1)
+        };
+        m.step_in(space);
+        m.step_in(space);
+        assert_eq!(m.p.0, 0);
+        assert_eq!(m.p.1, 0);
+    }
+
+    #[test]
+    fn wraps_negatively() {
+        let space = (2,2);
+        let mut m = Robot {
+            p: (0, 0),
+            v: (-1, -1)
+        };
+        m.step_in(space);
+        m.step_in(space);
+        assert_eq!(m.p.0, 0);
+        assert_eq!(m.p.1, 0);
+    }
+}
