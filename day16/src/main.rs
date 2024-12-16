@@ -44,9 +44,9 @@ fn part_1(data: &str) {
 
         match (row_diff, col_diff) {
             (0, 0) => 1, // Same dir moving forward is cheap
-            (1, _) => 1000,
-            (-1,_) => 1000,
-            _ => 2000, // 2000 to move backwards
+            (1, _) => 1001,
+            (-1,_) => 1001,
+            _ => 2001, // 2000 to move backwards
         }
     };
 
@@ -108,6 +108,7 @@ fn part_1(data: &str) {
 
 fn part_2(data: &str) {
     let _foo = data;
+    // Not 445, it's not just the total path length of the traversal there.
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
