@@ -3,6 +3,8 @@ use std::{
     fs
 };
 
+
+
 fn get_filename_from_args() -> Option<String> {
     let arguments: Vec<String> = env::args().skip(1).collect();
     if arguments.is_empty() {
@@ -18,3 +20,8 @@ pub fn get_sample_if_no_input() -> Result<String, std::io::Error> {
         Some(filename) => fs::read_to_string(filename)
     }
 }
+
+// Taken from https://doc.rust-lang.org/nightly/std/collections/binary_heap/index.html
+
+
+
