@@ -20,11 +20,10 @@ fn main() {
 
 fn part_1(data: &str) {
     let (graph, start, target) = parse_data_to_graph(data);
-    println!("{:?} {:?} {:?}", graph, start, target);
 
     // Begin A* search.
     let mut open_set = BinaryHeap::new();
-    let mut came_from = HashMap::new();
+    let mut came_from: HashMap<((usize, usize),&(isize, isize)), State> = HashMap::new();
     let mut g_score = HashMap::new();
     let mut f_score = HashMap::new();
     let east = (0, 1);
@@ -34,8 +33,8 @@ fn part_1(data: &str) {
     let direction = vec![east, north, west, south];
 
     let in_bounds = |row: usize, col: usize| -> bool {
-        let within_row = 0 <= row && row < graph.len();
-        let within_col = 0 <= col && col < graph[row].len();
+        let within_row = row < graph.len();
+        let within_col = col < graph[row].len();
         within_row && within_col
     };
 
@@ -56,16 +55,22 @@ fn part_1(data: &str) {
     open_set.push(State { cost: 0, position: start, facing: east });
     let mut result_path = VecDeque::new();
     while let Some(current) = open_set.pop() {
-        println!("{:?}", current);
         if current.position == target {
             // Break out of loop and then construct path from the set we've built
             let mut total_path = VecDeque::new();
             total_path.push_front(current);
 
-            // for cur_key in came_from.keys() {
-            //     let current = came_from.get(cur_key).unwrap(); 
-            //     total_path.push_front(current);
-            // }
+            let mut key = (current.position, &current.facing);
+            loop {
+
+                if !came_from.contains_key(&key) {
+                    break;
+                }
+                let current = came_from.get(&key).unwrap();
+                key = (current.position, &current.facing);
+                total_path.push_front(*current);
+            }
+            
             result_path = total_path;
             break;
         }
@@ -83,9 +88,8 @@ fn part_1(data: &str) {
             let neighbor_key = (neighbor, dir);
             let current_key = (current.position, &current.facing);
             let tentative_score = g_score.get(&current_key).unwrap() + weight_to(current.facing, *dir); // <-- I think this is wrong? d() vs h()
-            println!("{:?}", tentative_score);
             if tentative_score < *g_score.get(&neighbor_key).unwrap_or(&i32::MAX) {
-                came_from.insert(neighbor, current);
+                came_from.insert(neighbor_key, current);
                 g_score.insert(neighbor_key, tentative_score);
                 f_score.insert(neighbor_key, tentative_score + weight_to(current.facing, *dir));
 
@@ -97,7 +101,9 @@ fn part_1(data: &str) {
         }
     }
 
-    println!("{:?}", result_path.pop_back());
+    while let Some(state) = result_path.pop_front() {
+        println!("{:?}", state);
+    }
 }
 
 fn part_2(data: &str) {
