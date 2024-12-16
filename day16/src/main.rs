@@ -104,6 +104,8 @@ fn part_1(data: &str) {
     while let Some(state) = result_path.pop_front() {
         println!("{:?}", state);
     }
+
+    println!("The answer for part 1 is {:?}", state.cost - 1);
 }
 
 fn part_2(data: &str) {
