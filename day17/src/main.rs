@@ -19,16 +19,24 @@ fn part_1(data: &str) {
     let mut computer_state = ThreeBitComputer {
         reg_a: a,
         reg_b: b,
-        reg_c: c
+        reg_c: c,
+        instruction_pointer: 0
     };
 
-    let mut instruction_pointer = 0;
+    println!("{:?}", computer_state);
+    println!("{:?}", program);
+
+    let mut temp_too_long = 0;
+
     loop {
-        if instruction_pointer >= program.len() {
+        // Temp because the sample contains a JNZ 0 which loops the program which is
+        // detrimental to my quick checking right now
+        temp_too_long += 1;
+        if computer_state.instruction_pointer >= program.len() || temp_too_long > 10 {
             break;
         }
 
-        let (instruction, literal_operand) = program[instruction_pointer];
+        let (instruction, literal_operand) = program[computer_state.instruction_pointer];
         let output = computer_state.do_instruction(instruction, literal_operand);
         if let Some(output) = output {
             println!("OUTPUT: {:?}", output);
@@ -36,11 +44,11 @@ fn part_1(data: &str) {
 
         // Since we have tuples, this is not += 2, but just += 1.
         // Though we'll probably need to tweak this for jump commands and the like
-        instruction_pointer += 1;
+        computer_state.instruction_pointer += 1;
     }
 
     println!("{:?}", computer_state);
-    println!("{:?}", program);
+
 }
 
 fn parse_initial_state(data: &str) -> (RegisterInteger, RegisterInteger, RegisterInteger) {
@@ -85,12 +93,53 @@ type RegisterInteger = i64;
 struct ThreeBitComputer {
     reg_a: RegisterInteger,
     reg_b: RegisterInteger,
-    reg_c: RegisterInteger
+    reg_c: RegisterInteger,
+    instruction_pointer: usize
 }
 
 impl ThreeBitComputer {
     fn do_instruction(&mut self, instruction: Instruction, operand: Operand) -> Option<String> {
-        None
+        match instruction {
+            Instruction::ADV => {
+                let result = self.divide(self.reg_a, self.get_combo_operand(operand));
+                self.reg_a = result;
+                None
+            },
+            Instruction::BXL => {
+                let result = self.bitwise_xor(self.reg_b, operand as i64);
+                self.reg_b = result;
+                None
+            },
+            Instruction::BST => {
+                self.reg_b = self.modulo_8(self.get_combo_operand(operand));
+                None
+            },
+            Instruction::JNZ => {
+                if self.reg_a == 0 {
+                    return None;
+                }
+                self.instruction_pointer = operand as usize;
+                None
+            },
+            Instruction::BXC => {
+                self.reg_b = self.bitwise_xor(self.reg_b, self.reg_c);
+                None
+            },
+            Instruction::OUT => {
+                let value = self.get_combo_operand(operand);
+                Some(value.to_string())
+            },
+            Instruction::BDV => {
+                let result = self.divide(self.reg_a, self.get_combo_operand(operand));
+                self.reg_b = result;
+                None
+            },
+            Instruction::CDV => {
+                let result = self.divide(self.reg_a, self.get_combo_operand(operand));
+                self.reg_c = result;
+                None
+            }
+        }
     }
 
     fn get_combo_operand(&self, operand: Operand) -> RegisterInteger {
@@ -100,8 +149,24 @@ impl ThreeBitComputer {
             5 => self.reg_b,
             6 => self.reg_c,
             7 => panic!("7 is a reserved operand and should not appear in a valid program"),
-            other => panic!("{} is not a known operand", operand),
+            _ => panic!("{} is not a known operand", operand),
         }
+    }
+
+    fn divide(&self, numerator: RegisterInteger, denominator: RegisterInteger) -> RegisterInteger {
+        // how do we do 3 bit division?
+        // remember to truncate it
+        numerator / denominator
+    }
+
+    fn bitwise_xor(&self, input1: RegisterInteger, input2: RegisterInteger) -> RegisterInteger {
+        // TODO: Is there anything special about bitwise xor 'ing a 3 bit thing?
+        input1 ^ input2
+    }
+
+    fn modulo_8(&self, to_modulo: RegisterInteger) -> RegisterInteger {
+        // TODO keep only its lowest 3 bits
+        to_modulo
     }
 }
 
