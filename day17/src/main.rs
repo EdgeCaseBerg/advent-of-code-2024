@@ -127,7 +127,7 @@ impl ThreeBitComputer {
                 None
             },
             Instruction::BXL => {
-                let result = self.bitwise_xor(self.reg_b, operand);
+                let result = self.bitwise_xor_operand(self.reg_b, operand);
                 self.reg_b = result;
                 None
             },
@@ -143,7 +143,7 @@ impl ThreeBitComputer {
                 None
             },
             Instruction::BXC => {
-                self.reg_b = self.bitwise_xor(self.reg_b, (self.reg_c & MASK_3_BITS) as u8);
+                self.reg_b = self.bitwise_xor_register(self.reg_b, self.reg_c);
                 None
             },
             Instruction::OUT => {
@@ -185,8 +185,13 @@ impl ThreeBitComputer {
         untruncated_result
     }
 
-    fn bitwise_xor(&self, input1: RegisterInteger, input2: Operand) -> RegisterInteger {
+    fn bitwise_xor_operand(&self, input1: RegisterInteger, input2: Operand) -> RegisterInteger {
         let xor = input1 ^ input2 as i64;
+        xor as RegisterInteger
+    }
+
+    fn bitwise_xor_register(&self, input1: RegisterInteger, input2: RegisterInteger) -> RegisterInteger {
+        let xor = input1 ^ input2;
         xor as RegisterInteger
     }
 
