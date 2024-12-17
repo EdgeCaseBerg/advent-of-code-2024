@@ -35,6 +35,7 @@ fn part_1(data: &str) {
         }
 
         // Since we have tuples, this is not += 2, but just += 1.
+        // Though we'll probably need to tweak this for jump commands and the like
         instruction_pointer += 1;
     }
 
