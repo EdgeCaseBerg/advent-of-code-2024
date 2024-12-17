@@ -91,6 +91,17 @@ impl ThreeBitComputer {
     fn do_instruction(&mut self, instruction: Instruction, operand: Operand) -> Option<String> {
         None
     }
+
+    fn get_combo_operand(&self, operand: Operand) -> RegisterInteger {
+        match operand {
+            0..=3 => operand as i64,
+            4 => self.reg_a,
+            5 => self.reg_b,
+            6 => self.reg_c,
+            7 => panic!("7 is a reserved operand and should not appear in a valid program"),
+            other => panic!("{} is not a known operand", operand),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
