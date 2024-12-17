@@ -16,14 +16,27 @@ fn main() {
 fn part_1(data: &str) {
     let (a, b, c) = parse_initial_state(data);
     let program = parse_program_from(data);
-    let computer_state = ThreeBitComputer {
+    let mut computer_state = ThreeBitComputer {
         reg_a: a,
         reg_b: b,
         reg_c: c
     };
 
-    let instruction_pointer = 0;
-    let instruction_pointer_step = 2;
+    let mut instruction_pointer = 0;
+    loop {
+        if instruction_pointer >= program.len() {
+            break;
+        }
+
+        let (instruction, literal_operand) = program[instruction_pointer];
+        let output = computer_state.do_instruction(instruction, literal_operand);
+        if let Some(output) = output {
+            println!("OUTPUT: {:?}", output);
+        }
+
+        // Since we have tuples, this is not += 2, but just += 1.
+        instruction_pointer += 1;
+    }
 
     println!("{:?}", computer_state);
     println!("{:?}", program);
@@ -72,6 +85,12 @@ struct ThreeBitComputer {
     reg_a: RegisterInteger,
     reg_b: RegisterInteger,
     reg_c: RegisterInteger
+}
+
+impl ThreeBitComputer {
+    fn do_instruction(&mut self, instruction: Instruction, operand: Operand) -> Option<String> {
+        None
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
