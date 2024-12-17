@@ -68,7 +68,7 @@ fn parse_program_from(data: &str) -> Program {
     program
 }
 
-type Operand = u64;
+type Operand = u8;
 type RegisterInteger = i64;
 type Program = VecDeque<(Instruction, Operand)>;
 
@@ -79,6 +79,8 @@ struct ThreeBitComputer {
     reg_c: RegisterInteger,
     instruction_pointer: usize
 }
+
+const MASK_3_BITS: i64 = 0b111;
 
 impl ThreeBitComputer {
     fn do_program(&mut self, program: Program) -> String {
@@ -126,7 +128,7 @@ impl ThreeBitComputer {
                 None
             },
             Instruction::BXL => {
-                let result = self.bitwise_xor(self.reg_b, operand as i64);
+                let result = self.bitwise_xor(self.reg_b, operand);
                 self.reg_b = result;
                 None
             },
@@ -142,7 +144,7 @@ impl ThreeBitComputer {
                 None
             },
             Instruction::BXC => {
-                self.reg_b = self.bitwise_xor(self.reg_b, self.reg_c);
+                self.reg_b = self.bitwise_xor(self.reg_b, (self.reg_c & MASK_3_BITS) as u8);
                 None
             },
             Instruction::OUT => {
@@ -174,8 +176,8 @@ impl ThreeBitComputer {
     }
 
     fn divide(&self, numerator: RegisterInteger, combo: RegisterInteger) -> RegisterInteger {
-        let three_bit_num   = numerator & 0b111;
-        let foo = combo & 0b111;
+        let three_bit_num   = numerator & MASK_3_BITS;
+        let foo = combo & MASK_3_BITS;
         let three_bit_denom = 2_i64.pow(foo as u32);
 
         if three_bit_denom == 0 {
@@ -183,19 +185,16 @@ impl ThreeBitComputer {
             panic!("Division by 0???");
         }
         let untruncated_result = three_bit_num / three_bit_denom;
-        untruncated_result & 0b111
+        untruncated_result & MASK_3_BITS
     }
 
-    fn bitwise_xor(&self, input1: RegisterInteger, input2: RegisterInteger) -> RegisterInteger {
-        // TODO: Is there anything special about bitwise xor 'ing a 3 bit thing?
-        let xor = input1 ^ input2;
-        xor & 0b111
+    fn bitwise_xor(&self, input1: RegisterInteger, input2: Operand) -> RegisterInteger {
+        let xor = input1 ^ input2 as i64;
+        xor as RegisterInteger
     }
 
     fn modulo_8(&self, to_modulo: RegisterInteger) -> RegisterInteger {
-        let three_bit = to_modulo & 0b111;
-        let modulated = three_bit % 8;
-        modulated & 0b111
+        to_modulo & MASK_3_BITS
     }
 }
 
