@@ -26,28 +26,10 @@ fn part_1(data: &str) {
     println!("{:?}", computer_state);
     println!("{:?}", program);
 
-    let mut temp_too_long = 0;
-
-    loop {
-        // Temp because the sample contains a JNZ 0 which loops the program which is
-        // detrimental to my quick checking right now
-        temp_too_long += 1;
-        if computer_state.instruction_pointer >= program.len() || temp_too_long > 10 {
-            break;
-        }
-
-        let (instruction, literal_operand) = program[computer_state.instruction_pointer];
-        let output = computer_state.do_instruction(instruction, literal_operand);
-        if let Some(output) = output {
-            println!("OUTPUT: {:?}", output);
-        }
-
-        // Since we have tuples, this is not += 2, but just += 1.
-        // Though we'll probably need to tweak this for jump commands and the like
-        computer_state.instruction_pointer += 1;
-    }
+    let output = computer_state.do_program(program);
 
     println!("{:?}", computer_state);
+    println!("{:?}", output);
 
 }
 
@@ -59,7 +41,7 @@ fn parse_initial_state(data: &str) -> (RegisterInteger, RegisterInteger, Registe
     (a, b, c)
 }
 
-fn parse_program_from(data: &str) -> VecDeque<(Instruction, Operand)> {
+fn parse_program_from(data: &str) -> Program {
     let program_line = data.lines().skip_while(|line| !line.starts_with("Program")).nth(0).unwrap();
     let ops: Vec<usize> = program_line.split(": ").nth(1).unwrap().chars().filter_map(|c| {
         match c {
@@ -88,6 +70,7 @@ fn parse_program_from(data: &str) -> VecDeque<(Instruction, Operand)> {
 
 type Operand = u64;
 type RegisterInteger = i64;
+type Program = VecDeque<(Instruction, Operand)>;
 
 #[derive(Debug)]
 struct ThreeBitComputer {
@@ -98,6 +81,43 @@ struct ThreeBitComputer {
 }
 
 impl ThreeBitComputer {
+    fn do_program(&mut self, program: Program) -> String {
+        let mut temp_too_long = 0;
+        let time_to_run = 100;
+        let mut previous_register_state_was_zero = false;
+        let mut program_output = String::new();
+        loop {
+            // Temp because the sample contains a JNZ 0 which loops the program which is
+            // detrimental to my quick checking right now
+            temp_too_long += 1;
+            if self.instruction_pointer >= program.len() || temp_too_long > time_to_run {
+                break;
+            }
+
+            if self.reg_a == 0 {
+                previous_register_state_was_zero = true;
+            }
+
+            let (instruction, literal_operand) = program[self.instruction_pointer];
+            let output = self.do_instruction(instruction, literal_operand);
+            if let Some(output) = output {
+                program_output.push_str(&output);
+                program_output.push_str(",");
+            }
+
+            // Since we have tuples, this is not += 2, but just += 1.
+            // Though we'll probably need to tweak this for jump commands and the like
+            match instruction {
+                Instruction::JNZ => {
+                    if previous_register_state_was_zero {
+                       self.instruction_pointer += 1; 
+                    }
+                },
+                _ => self.instruction_pointer += 1,
+            }
+        }
+        program_output
+    }
     fn do_instruction(&mut self, instruction: Instruction, operand: Operand) -> Option<String> {
         match instruction {
             Instruction::ADV => {
@@ -168,12 +188,14 @@ impl ThreeBitComputer {
 
     fn bitwise_xor(&self, input1: RegisterInteger, input2: RegisterInteger) -> RegisterInteger {
         // TODO: Is there anything special about bitwise xor 'ing a 3 bit thing?
-        input1 ^ input2
+        let xor = input1 ^ input2;
+        xor & 0b111
     }
 
     fn modulo_8(&self, to_modulo: RegisterInteger) -> RegisterInteger {
-        // TODO keep only its lowest 3 bits
-        to_modulo
+        let three_bit = to_modulo & 0b111;
+        let modulated = three_bit % 8;
+        modulated & 0b111
     }
 }
 
