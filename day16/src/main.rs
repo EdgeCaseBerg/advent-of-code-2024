@@ -14,17 +14,17 @@ fn main() {
         return;
     }
     let data = raw_data.unwrap();
-    // part_1(&data);
+    part_1(&data);
     part_2(&data);
 }
 
 
-fn _part_1(data: &str) {
+fn part_1(data: &str) {
     let (graph, start, target) = parse_data_to_graph(data);
 
     // Begin A* search.
     let mut open_set = BinaryHeap::new();
-    let mut came_from: HashMap<((usize, usize),&(isize, isize)), State> = HashMap::new();
+    let mut came_from: HashMap<(Position, &(isize, isize)), State> = HashMap::new();
     let mut g_score = HashMap::new();
     let mut f_score = HashMap::new();
     let east = (0, 1);
@@ -105,11 +105,9 @@ fn _part_1(data: &str) {
     let mut state_r = None;
     while let Some(state) = result_path.pop_front() {
         state_r = Some(state);
-        println!("{:?}", state);
     }
 
     println!("The answer for part 1 is {:?}", state_r.unwrap().cost - 1);
-    println!("{:?}", came_from.keys().len());
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -193,7 +191,7 @@ fn part_2(data: &str) {
     }
 
     while let Some(next_node) = queue.pop() {
-        let P2HeapOrder { cost: current_cost, key: node_key } = next_node;
+        let P2HeapOrder { cost: _, key: node_key } = next_node;
         let (row, col, facing) = node_key;
 
         if (row, col) == target {
@@ -259,13 +257,6 @@ fn part_2(data: &str) {
             }
             Some(previous_set_of_nodes) => {
                 for node_key in previous_set_of_nodes { 
-                    let (row, col, dir) = node_key;
-                    // Which of these previous sets of nodes led directly to this one?
-                    match distances_by_location_and_dir.get(node_key) {
-                        None => {},
-                        Some(distance) => {
-                        }
-                    }
                     unique.insert((current.0, current.1));
                     stack.push_front(*node_key);
                 }
@@ -278,6 +269,8 @@ fn part_2(data: &str) {
 
 }
 
+type Matrix = Vec<Vec<NodeType>>;
+type Position = (usize, usize);
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum NodeType {
@@ -316,14 +309,14 @@ impl PartialOrd for State {
 }
 
 
-fn parse_data_to_graph(data: &str) -> (Vec<Vec<NodeType>>, (usize, usize), (usize, usize)) {
+fn parse_data_to_graph(data: &str) -> (Matrix, Position, Position) {
     let matrix = data.lines().map(|line| {
-        line.chars().filter_map(|char_in_line| {
+        line.chars().map(|char_in_line| {
             match char_in_line {
-                '.' => Some(NodeType::Path),
-                'S' => Some(NodeType::Start),
-                'E' => Some(NodeType::End),
-                _   => Some(NodeType::Wall),
+                '.' => NodeType::Path,
+                'S' => NodeType::Start,
+                'E' => NodeType::End,
+                _   => NodeType::Wall,
             }
         }).collect::<Vec<NodeType>>()
     }).collect::<Vec<Vec<NodeType>>>();
@@ -331,14 +324,14 @@ fn parse_data_to_graph(data: &str) -> (Vec<Vec<NodeType>>, (usize, usize), (usiz
     let mut graph = Vec::new();
     let mut start_node = (0,0);
     let mut end_node = (0,0);
-    for row in 0..matrix.len() {
+    for (row, cols) in matrix.iter().enumerate() {
         let mut r = Vec::new();
-        for col in 0..matrix[row].len() {
-            if matrix[row][col] == NodeType::Start {
+        for (col, &node) in cols.iter().enumerate() {
+            if node == NodeType::Start {
                 start_node = (row, col);
             }
 
-            if matrix[row][col] == NodeType::End {
+            if node == NodeType::End {
                 end_node = (row, col);
             }
             r.push(matrix[row][col]);
