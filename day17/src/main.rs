@@ -197,3 +197,96 @@ impl Instruction {
         i[raw]
     }
 }
+
+#[cfg(test)]
+mod main_tests {
+    use super::*;
+
+    #[test]
+    fn if_c_has_9_program_2_6_sets_register_b_to_1() {
+        let mut computer_state = ThreeBitComputer {
+            reg_a: 0,
+            reg_b: 0,
+            reg_c: 9,
+            instruction_pointer: 0
+        };
+        computer_state.do_instruction(Instruction::from(2), 6);
+        assert_eq!(1, computer_state.reg_b);
+    }
+
+    #[test]
+    fn if_a_contains_10_program_505154_outputs_012() {
+        let mut computer_state = ThreeBitComputer {
+            reg_a: 10,
+            reg_b: 0,
+            reg_c: 0,
+            instruction_pointer: 0
+        };
+        let outputs = vec![
+            computer_state.do_instruction(Instruction::from(5), 0),
+            computer_state.do_instruction(Instruction::from(5), 1),
+            computer_state.do_instruction(Instruction::from(5), 4)
+        ];
+        assert_eq!(vec![
+            Some("0".to_string()),
+            Some("1".to_string()),
+            Some("2".to_string()),
+        ], outputs);
+    }
+
+    #[test]
+    fn if_reg_a_contains_2024_program_015430_outputs_42567777310_and_has_reg_a_as_9() {
+        // Let us consider doing this test after we have some others working
+        // let mut computer_state = ThreeBitComputer {
+        //     reg_a: 2024,
+        //     reg_b: 0,
+        //     reg_c: 0,
+        //     instruction_pointer: 0
+        // };
+        // let outputs = vec![
+        //     computer_state.do_instruction(Instruction::from(0), 1),
+        //     computer_state.do_instruction(Instruction::from(5), 4),
+        //     computer_state.do_instruction(Instruction::from(3), 0),
+        //     // Note JNZ is a jump
+        // ];
+        // assert_eq!(vec![
+        //     Some("4".to_string()),
+        //     Some("2".to_string()),
+        //     Some("5".to_string()),
+        //     Some("6".to_string()),
+        //     Some("7".to_string()),
+        //     Some("7".to_string()),
+        //     Some("7".to_string()),
+        //     Some("7".to_string()),
+        //     Some("3".to_string()),
+        //     Some("1".to_string()),
+        //     Some("0".to_string())
+        // ], outputs);
+        // assert_eq!(0, computer_state.reg_a);
+    }
+
+    #[test]
+    fn if_register_b_contains_29_program_17_sets_register_b_to_26() {
+        let mut computer_state = ThreeBitComputer {
+            reg_a: 0,
+            reg_b: 29,
+            reg_c: 0,
+            instruction_pointer: 0
+        };
+        computer_state.do_instruction(Instruction::from(1), 7);
+        assert_eq!(26, computer_state.reg_b);
+    }
+
+    #[test]
+    fn if_register_b_contains_2024_and_register_c_contains_43690_program_40_sets_register_b_to_44354() {
+        let mut computer_state = ThreeBitComputer {
+            reg_a: 0,
+            reg_b: 2024,
+            reg_c: 43690,
+            instruction_pointer: 0
+        };
+        computer_state.do_instruction(Instruction::from(4), 0);
+        assert_eq!(44354, computer_state.reg_b);
+    }    
+
+}
