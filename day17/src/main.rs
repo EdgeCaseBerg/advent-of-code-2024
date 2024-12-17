@@ -1,6 +1,6 @@
 pub mod boilerplate;
 
-// use std::collections::VecDeque;
+use std::collections::VecDeque;
 
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
@@ -15,6 +15,7 @@ fn main() {
 
 fn part_1(data: &str) {
     let (a, b, c) = parse_initial_state(data);
+    let program = parse_program_from(data);
     let computer_state = ThreeBitComputer {
         reg_A: a,
         reg_B: b,
@@ -22,6 +23,7 @@ fn part_1(data: &str) {
     };
 
     println!("{:?}", computer_state);
+    println!("{:?}", program);
 }
 
 fn parse_initial_state(data: &str) -> (RegisterInteger, RegisterInteger, RegisterInteger) {
@@ -32,6 +34,22 @@ fn parse_initial_state(data: &str) -> (RegisterInteger, RegisterInteger, Registe
     (a, b, c)
 }
 
+fn parse_program_from(data: &str) -> VecDeque<OpCode> {
+    let program_line = data.lines().skip_while(|line| !line.starts_with("Program")).nth(0).unwrap();
+    println!("{:?}", program_line);
+    let ops: Vec<OpCode> = program_line.split(": ").nth(1).unwrap().chars().filter_map(|c| {
+        match c {
+            ',' => None,
+            op => {
+                let n: OpCode = op.to_string().parse().expect("Bad op code input");
+                Some(n)
+            }
+        }
+    }).collect();
+    VecDeque::from(ops)
+}
+
+type OpCode = u64;
 type RegisterInteger = i64;
 
 #[derive(Debug)]
