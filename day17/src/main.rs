@@ -153,10 +153,17 @@ impl ThreeBitComputer {
         }
     }
 
-    fn divide(&self, numerator: RegisterInteger, denominator: RegisterInteger) -> RegisterInteger {
-        // how do we do 3 bit division?
-        // remember to truncate it
-        numerator / denominator
+    fn divide(&self, numerator: RegisterInteger, combo: RegisterInteger) -> RegisterInteger {
+        let three_bit_num   = numerator & 0b111;
+        let foo = combo & 0b111;
+        let three_bit_denom = 2_i64.pow(foo as u32);
+
+        if three_bit_denom == 0 {
+            // uhhh....
+            panic!("Division by 0???");
+        }
+        let untruncated_result = three_bit_num / three_bit_denom;
+        untruncated_result & 0b111
     }
 
     fn bitwise_xor(&self, input1: RegisterInteger, input2: RegisterInteger) -> RegisterInteger {
