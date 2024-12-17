@@ -23,14 +23,8 @@ fn part_1(data: &str) {
         instruction_pointer: 0
     };
 
-    println!("{:?}", computer_state);
-    println!("{:?}", program);
-
     let output = computer_state.do_program(program);
-
-    println!("{:?}", computer_state);
     println!("{:?}", output);
-
 }
 
 fn parse_initial_state(data: &str) -> (RegisterInteger, RegisterInteger, RegisterInteger) {
