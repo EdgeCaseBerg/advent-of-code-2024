@@ -3,6 +3,7 @@ pub mod boilerplate;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::collections::BinaryHeap;
+use std::collections::HashSet;
 use std::cmp::Ordering;             
 
 
@@ -13,12 +14,12 @@ fn main() {
         return;
     }
     let data = raw_data.unwrap();
-    part_1(&data);
+    // part_1(&data);
     part_2(&data);
 }
 
 
-fn part_1(data: &str) {
+fn _part_1(data: &str) {
     let (graph, start, target) = parse_data_to_graph(data);
 
     // Begin A* search.
@@ -101,16 +102,147 @@ fn part_1(data: &str) {
         }
     }
 
+    let mut state_r = None;
     while let Some(state) = result_path.pop_front() {
+        state_r = Some(state);
         println!("{:?}", state);
     }
 
-    println!("The answer for part 1 is {:?}", state.cost - 1);
+    println!("The answer for part 1 is {:?}", state_r.unwrap().cost - 1);
+    println!("{:?}", came_from.keys().len());
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+struct P2HeapOrder {
+     cost: u64,
+     key: (usize, usize, (isize, isize))
+}
+
+// The priority queue depends on `Ord`.
+// Explicitly implement the trait so the queue becomes a min-heap
+// instead of a max-heap.
+impl Ord for P2HeapOrder {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Notice that we flip the ordering on costs.
+        // In case of a tie we compare positions - this step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        other.cost.cmp(&self.cost)
+            .then_with(|| self.key.cmp(&other.key))
+    }
+}
+
+impl PartialOrd for P2HeapOrder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 fn part_2(data: &str) {
-    let _foo = data;
-    // Not 445, it's not just the total path length of the traversal there.
+    let (graph, start, target) = parse_data_to_graph(data);
+    let in_bounds = |row: usize, col: usize| -> bool {
+        let within_row = row < graph.len();
+        let within_col = col < graph[row].len();
+        within_row && within_col
+    };
+
+    let east = (0, 1);
+    let north = (-1, 0);
+    let west = (0, -1);
+    let south = (1, 0);
+    let directions = vec![east, north, west, south];
+
+    // Let's do dijkstra this time instead.
+    let mut distances_by_location_and_dir = HashMap::new();
+    let mut previous_nodes_into_location = HashMap::new();
+    let mut queue     = BinaryHeap::new();
+
+    // First precompute all distances as infinitely far
+    for row in 0..graph.len() {
+        for col in 0..graph[row].len() {
+            if graph[row][col] == NodeType::Wall{
+                continue;
+            }
+
+            for dir in &directions {
+                // I shouldn't technically have to do this since Out of bounds is beyond the wall, but let's be safe.
+                if !in_bounds((row as isize + dir.0) as usize, (col as isize + dir.1) as usize) {
+                    continue;
+                }
+
+                if graph[(row as isize + dir.0) as usize][(col as isize + dir.0) as usize] == NodeType::Wall {
+                    continue;
+                }
+
+                let node_key = (row, col, *dir);
+                let empty_set: HashSet<(usize, usize, (isize, isize))> = HashSet::new();
+                
+                distances_by_location_and_dir.insert(node_key, u64::MAX);
+                previous_nodes_into_location.insert(node_key, empty_set);
+
+                // Setup our starting point as the most minimal of distance.
+                // And also add in the min heap queue for processing
+                // Reindeer start facing _east_ only
+                if (row, col) == start && *dir == east {
+                    distances_by_location_and_dir.insert(node_key, 0);
+                    queue.push(P2HeapOrder { cost: 0, key: node_key });
+                } else {
+                    queue.push(P2HeapOrder { cost: u64::MAX, key: node_key });
+                }
+            }
+        }
+    }
+
+    while let Some(next_node) = queue.pop() {
+        let P2HeapOrder { cost: current_cost, key: node_key } = next_node;
+        let (row, col, facing) = node_key;
+
+        if (row, col) == target {
+            break;
+        }
+
+        for dir in &directions {
+            let next_row = (row as isize + dir.0) as usize;
+            let next_col = (col as isize + dir.1) as usize;
+
+            if !in_bounds(next_row, next_col) {
+                continue;
+            }
+            if graph[next_row][next_col] == NodeType::Wall {
+                continue;
+            }
+
+            let mut distance_to_next: u64 = *(distances_by_location_and_dir.get(&node_key).unwrap_or(&u64::MAX));
+            if facing == *dir {
+                distance_to_next = distance_to_next.saturating_add(1);    // just step forward
+            } else {
+                distance_to_next = distance_to_next.saturating_add(1001); // turn then step
+            }
+
+            let neighbor_key = (next_row, next_col, *dir);
+            if distance_to_next <= *(distances_by_location_and_dir.get(&neighbor_key).unwrap_or(&u64::MAX)) {
+                let mut hash_set = (previous_nodes_into_location.get(&neighbor_key).unwrap_or(&HashSet::new())).clone();
+                hash_set.insert(node_key);
+                previous_nodes_into_location.insert(neighbor_key, hash_set); // mark the neighbor as being traversale to from our current node
+                distances_by_location_and_dir.insert(neighbor_key, distance_to_next);
+                queue.push(P2HeapOrder { cost: distance_to_next,  key: neighbor_key });
+            }
+        }
+    }
+
+    let mut cost = u64::MAX;
+    let mut best_direction = (start.0, start.1, east);
+    for dir in &directions {
+        if let Some(distance) = distances_by_location_and_dir.get(&(target.0, target.1, *dir)) {
+            if *distance < cost {
+                cost = *distance;
+                best_direction = (target.0, target.1, *dir);
+            }
+        }
+    }
+    println!("Best cost of {:?} from {:?}", cost, best_direction);
+
+    // println!("DIST {:?}", distances_by_location_and_dir);
+    // println!("PREV {:?}", previous_nodes_into_location);
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -121,6 +253,7 @@ enum NodeType {
     Wall
 }
 
+// Taken and modified from https://doc.rust-lang.org/nightly/std/collections/binary_heap/index.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 struct State {
      cost: i32,
@@ -142,7 +275,6 @@ impl Ord for State {
     }
 }
 
-// `PartialOrd` needs to be implemented as well.
 impl PartialOrd for State {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))

@@ -21,7 +21,3 @@ pub fn get_sample_if_no_input() -> Result<String, std::io::Error> {
     }
 }
 
-// Taken from https://doc.rust-lang.org/nightly/std/collections/binary_heap/index.html
-
-
-
