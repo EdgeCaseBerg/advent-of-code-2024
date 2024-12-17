@@ -17,10 +17,13 @@ fn part_1(data: &str) {
     let (a, b, c) = parse_initial_state(data);
     let program = parse_program_from(data);
     let computer_state = ThreeBitComputer {
-        reg_A: a,
-        reg_B: b,
-        reg_C: c
+        reg_a: a,
+        reg_b: b,
+        reg_c: c
     };
+
+    let instruction_pointer = 0;
+    let instruction_pointer_step = 2;
 
     println!("{:?}", computer_state);
     println!("{:?}", program);
@@ -34,27 +37,67 @@ fn parse_initial_state(data: &str) -> (RegisterInteger, RegisterInteger, Registe
     (a, b, c)
 }
 
-fn parse_program_from(data: &str) -> VecDeque<OpCode> {
+fn parse_program_from(data: &str) -> VecDeque<(Instruction, Operand)> {
     let program_line = data.lines().skip_while(|line| !line.starts_with("Program")).nth(0).unwrap();
-    println!("{:?}", program_line);
-    let ops: Vec<OpCode> = program_line.split(": ").nth(1).unwrap().chars().filter_map(|c| {
+    let ops: Vec<usize> = program_line.split(": ").nth(1).unwrap().chars().filter_map(|c| {
         match c {
             ',' => None,
             op => {
-                let n: OpCode = op.to_string().parse().expect("Bad op code input");
+                let n: usize = op.to_string().parse().expect("Bad op code input");
                 Some(n)
             }
         }
     }).collect();
-    VecDeque::from(ops)
+    let mut program = VecDeque::new();
+    let mut ops = ops.iter();
+    loop {
+        let i = ops.next();
+        let o = ops.next();
+        if let (Some(instruction), Some(operand)) = (i, o) {
+            let parsed_i = Instruction::from(*instruction);
+            program.push_back((parsed_i, *operand as Operand));
+        } else {
+            break;
+        }
+    }
+
+    program
 }
 
-type OpCode = u64;
+type Operand = u64;
 type RegisterInteger = i64;
 
 #[derive(Debug)]
 struct ThreeBitComputer {
-    reg_A: RegisterInteger,
-    reg_B: RegisterInteger,
-    reg_C: RegisterInteger
+    reg_a: RegisterInteger,
+    reg_b: RegisterInteger,
+    reg_c: RegisterInteger
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Instruction {
+    ADV,
+    BXL,
+    BST,
+    JNZ,
+    BXC,
+    OUT,
+    BDV,
+    CDV,
+}
+
+impl Instruction {
+    fn from(raw: usize) -> Instruction {
+        let i = vec![
+            Instruction::ADV,
+            Instruction::BXL,
+            Instruction::BST,
+            Instruction::JNZ,
+            Instruction::BXC,
+            Instruction::OUT,
+            Instruction::BDV,
+            Instruction::CDV
+        ];
+        i[raw]
+    }
 }
