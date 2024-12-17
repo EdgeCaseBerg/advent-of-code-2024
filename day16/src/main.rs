@@ -236,14 +236,48 @@ fn part_2(data: &str) {
             if *distance < cost {
                 cost = *distance;
                 best_direction = (target.0, target.1, *dir);
+            } else if *distance == cost {
+                println!("Potential tie?");
             }
         }
     }
     println!("Best cost of {:?} from {:?}", cost, best_direction);
 
-    // println!("DIST {:?}", distances_by_location_and_dir);
-    // println!("PREV {:?}", previous_nodes_into_location);
+    // Now we use the fact that we stored a Set of previous nodes as we traversed to construct
+    // a graph that is the best path AND any other paths that may have been possible for it.
+    let mut unique = HashSet::new();
+    unique.insert((best_direction.0, best_direction.1));
+
+    // So DFS from the End location all the way back to the start
+    let mut stack = VecDeque::new();
+    stack.push_front(best_direction); //FILO, LILO hm... fun.
+    while let Some(current) = stack.pop_back() {
+        match previous_nodes_into_location.get(&current) {
+            None => {
+                // Continue... unless it's the source?
+                continue;
+            }
+            Some(previous_set_of_nodes) => {
+                for node_key in previous_set_of_nodes { 
+                    let (row, col, dir) = node_key;
+                    // Which of these previous sets of nodes led directly to this one?
+                    match distances_by_location_and_dir.get(node_key) {
+                        None => {},
+                        Some(distance) => {
+                        }
+                    }
+                    unique.insert((current.0, current.1));
+                    stack.push_front(*node_key);
+                }
+            }
+        }
+    }
+
+    // + 1 becuase we never count the actual start node.
+    println!("The number of unique tiles is {:?}", unique.len() + 1);
+
 }
+
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum NodeType {
