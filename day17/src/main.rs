@@ -123,8 +123,7 @@ impl ThreeBitComputer {
     fn do_instruction(&mut self, instruction: Instruction, operand: Operand) -> Option<String> {
         match instruction {
             Instruction::ADV => {
-                let result = self.divide(self.reg_a, self.get_combo_operand(operand));
-                self.reg_a = result;
+                self.reg_a = self.divide(self.reg_a, self.get_combo_operand(operand));
                 None
             },
             Instruction::BXL => {
@@ -149,7 +148,7 @@ impl ThreeBitComputer {
             },
             Instruction::OUT => {
                 let value = self.get_combo_operand(operand);
-                Some(value.to_string())
+                Some((value & MASK_3_BITS).to_string())
             },
             Instruction::BDV => {
                 let result = self.divide(self.reg_a, self.get_combo_operand(operand));
@@ -176,16 +175,14 @@ impl ThreeBitComputer {
     }
 
     fn divide(&self, numerator: RegisterInteger, combo: RegisterInteger) -> RegisterInteger {
-        let three_bit_num   = numerator & MASK_3_BITS;
-        let foo = combo & MASK_3_BITS;
-        let three_bit_denom = 2_i64.pow(foo as u32);
+        let denom = 2_i64.pow(combo as u32);
 
-        if three_bit_denom == 0 {
+        if denom == 0 {
             // uhhh....
             panic!("Division by 0???");
         }
-        let untruncated_result = three_bit_num / three_bit_denom;
-        untruncated_result & MASK_3_BITS
+        let untruncated_result = numerator / denom;
+        untruncated_result
     }
 
     fn bitwise_xor(&self, input1: RegisterInteger, input2: Operand) -> RegisterInteger {
