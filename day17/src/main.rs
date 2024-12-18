@@ -182,7 +182,7 @@ fn part_2(data: &str) {
             println!("Try {:?} {:?}", string_rep, output);
     */
 
-    // This probably would work. But was too brute force.
+    // THIS WOULD WORK I JUST HAD A BUG IN MY PROGRAM BEFORE AAAAHHHHH
     let program_in_reverse = vec![0,3,3,0,5,5,0,4,5,1,5,7,1,1,4,2];
     let mut value = 0;
     let lowest_register_to_produce_self = search_register_from_start(value, 0, &program_in_reverse);
