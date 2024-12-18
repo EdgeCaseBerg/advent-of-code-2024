@@ -30,7 +30,21 @@ fn part_1(data: &str) {
 }
 
 fn part_2(data: &str) {
-    let _foo = data;
+    let rows = 71; // 7 for example, 70 for real
+    let cols = 71; // 7 for example, 70 for real
+    let steps_to_simulate = 1024;
+    let graph = get_empty_matrix(rows, cols);
+    let obstacles = get_obstacles(data);
+    for step_no in steps_to_simulate..obstacles.len() {
+        let corrupted_graph = place_obstacles_on_graph(&graph, &obstacles, step_no);
+        let start = (0,0);
+        let end = (70,70);
+        if dijkstra(&corrupted_graph, start, end).is_none() {
+            println!("step_no: {}", step_no);
+            break;
+        }
+    }
+    println!("Part 2 done I guess");
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
