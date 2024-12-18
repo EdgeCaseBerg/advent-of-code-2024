@@ -27,6 +27,67 @@ fn part_1(data: &str) {
     println!("{:?}", output);
 }
 
+fn part_2(data: &str) {
+    let (_, b, c) = parse_initial_state(data);
+    let program = parse_program_from(data);
+    let required_output = print_program(&program);
+
+    /* since things always go down, we want it to END on a specific 
+     * output, so rather than go forwards... what if we go backwards?
+     * 
+     * Since the first instruction is always A % 8, then we only really have 0 - 7
+     * that can produce an output. So, let's try to work out what each of those cam
+     * do for us and maybe we can figure out a way to get to this sequence or work
+     * backwards in some way?
+     *
+     * 3  -> 0 
+     * 6  -> 3
+     * 6  -> 3
+     * 3  -> 0 <--- but we don't care maybe because this is an op to bxc which ignores its input.
+     *    -> 5
+     *    -> 5
+     *    -> 0
+     *0,1 -> 4
+     *    -> 5
+     * 5  -> 1
+     *    -> 5
+     * 3  -> 7
+     * 5  -> 1
+     * 5  -> 1
+     *0,1 -> 4
+     * 6  -> 2
+     */
+
+    for a in 0..9 {
+        let mut computer_state = ThreeBitComputer {
+            reg_a: a as i64,
+            reg_b: b,
+            reg_c: c,
+            instruction_pointer: 0
+        };
+        let output = computer_state.do_program(program.clone());
+        println!("{:?}", output);
+        if output == "2, 4" {
+            println!("Value found where program prints self: {:?}", a);
+            break;
+        } else {
+            println!("Register A value of {:?} is no good", a);
+        }
+    }
+    
+}
+
+fn print_program(program: &Program) -> String {
+    let mut out = String::new();
+    let mut to_consume = program.clone();
+    while let Some((instruction, operand)) = to_consume.pop_front() {
+        out.push_str(&instruction.to_num().to_string());
+        out.push_str(&operand.to_string());
+    }
+    out
+}
+
+
 fn parse_initial_state(data: &str) -> (RegisterInteger, RegisterInteger, RegisterInteger) {
     let mut line_iter = data.lines().take_while(|line| !line.is_empty()).take(3);
     let a: RegisterInteger = line_iter.next().unwrap().split(":").nth(1).unwrap().trim().parse().unwrap();
@@ -82,6 +143,7 @@ impl ThreeBitComputer {
         let time_to_run = 100;
         let mut previous_register_state_was_zero = false;
         let mut program_output = String::new();
+        let mut has_output = false;
         loop {
             // Temp because the sample contains a JNZ 0 which loops the program which is
             // detrimental to my quick checking right now
@@ -95,10 +157,14 @@ impl ThreeBitComputer {
             }
 
             let (instruction, literal_operand) = program[self.instruction_pointer];
+            println!("{:?} {:?}: {:?}", instruction, literal_operand, self);
             let output = self.do_instruction(instruction, literal_operand);
             if let Some(output) = output {
+                if has_output {
+                    program_output.push_str(",");
+                }
                 program_output.push_str(&output);
-                program_output.push_str(",");
+                has_output = true;
             }
 
             // Since we have tuples, this is not += 2, but just += 1.
@@ -149,6 +215,7 @@ impl ThreeBitComputer {
                 self.reg_b = result;
                 None
             },
+
             Instruction::CDV => {
                 let result = self.divide(self.reg_a, self.get_combo_operand(operand));
                 self.reg_c = result;
@@ -194,7 +261,7 @@ impl ThreeBitComputer {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Instruction {
     ADV,
     BXL,
@@ -219,6 +286,18 @@ impl Instruction {
             Instruction::CDV
         ];
         i[raw]
+    }
+    fn to_num(&self) -> Operand {
+        vec![
+            Instruction::ADV,
+            Instruction::BXL,
+            Instruction::BST,
+            Instruction::JNZ,
+            Instruction::BXC,
+            Instruction::OUT,
+            Instruction::BDV,
+            Instruction::CDV
+        ].iter().position(|&i| i == *self).unwrap() as Operand
     }
 }
 
