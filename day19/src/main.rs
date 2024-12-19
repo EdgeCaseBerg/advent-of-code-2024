@@ -13,16 +13,48 @@ fn main() {
 
 fn part_1(data: &str) {
     let (parsers, request_designs) = get_parsed_data(data);
-    
+
     let mut valid_designs = 0;
     for design in &request_designs {
-        let mut leftover = design.clone();
+        let leftover = design.clone();
         if try_parsers(&parsers, &leftover) {
             valid_designs += 1;
         }
     }
     println!("Valid designs {:?}", valid_designs);
 }
+
+fn part_2(data: &str) {
+    let (parsers, request_designs) = get_parsed_data(data);
+
+    let mut designs_to_find_arrangements_of = vec![];
+    for design in &request_designs {
+        if try_parsers(&parsers, &design) {
+            designs_to_find_arrangements_of.push(design);
+        }
+    }
+
+    let mut different_ways_to_make_design = 0;
+    for design in &designs_to_find_arrangements_of {
+        let mut paths = CounterNode {
+            design: parsers[0].clone(), // This first one doesn't matter.
+            children: vec![]
+        };
+        try_parsers_find_ways(&parsers, &design, &mut paths);
+        let leaves = paths.count_leaves();
+        println!("{:?}", design);
+        println!("COUNT {:?}", leaves);
+        /*
+         Gets everything right on sample EXCEPT for 
+        [Black, White, Blue, Red, Red, Green]
+        COUNT 2 instead of count 1
+        */
+        different_ways_to_make_design += leaves;
+    }
+    println!("{:?}", different_ways_to_make_design);
+
+}
+
 
 fn get_parsed_data(data: &str) -> (Vec<Design>, Vec<Vec<TowelStripe>>) {
     let raw_designs = data
@@ -67,9 +99,52 @@ fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
     return false;
 }
 
+#[derive(Debug)]
+struct CounterNode {
+    design: Design,
+    children: Vec<CounterNode>
+}
 
-fn part_2(data: &str) {
-    let _foo = data;
+impl CounterNode {
+    fn count_leaves(&self) -> u64 {
+        if self.children.is_empty() {
+            // println!("LEAF {:?}", self.design);
+            return 1;
+        }
+        let mut leaves = 0;
+        for node in self.children.iter() {
+            leaves += node.count_leaves();
+        }
+        return leaves;
+    }
+}
+
+fn try_parsers_find_ways(parsers: &Vec<Design>, input: &[TowelStripe], paths: &mut CounterNode) {
+    let mut combos_that_worked = 0;
+    for parser in parsers {
+        // If this parser _has_ a solution from this point, then explore!
+        if !try_parsers(parsers, input) {
+            continue;
+        }
+
+        let mut new_node = CounterNode {
+            design: parser.clone(),
+            children: vec![]
+        };
+
+        if let Some(to_consume) = parser.matches(input) {
+            // Fully matched?
+            if to_consume == input.len() {
+                // This is a full path.
+            } else {
+                // Deepen the search for this parse
+                try_parsers_find_ways(parsers, &input[to_consume..], &mut new_node);
+            }
+            paths.children.push(new_node);
+        }
+        
+        
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -108,7 +183,7 @@ impl TowelStripe {
     }    
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Design {
     design: Vec<TowelStripe>,
 }
