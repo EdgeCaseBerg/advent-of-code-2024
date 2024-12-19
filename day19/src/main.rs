@@ -44,7 +44,6 @@ fn part_1(data: &str) {
 }
 
 fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
-    let mut valid_parsers = vec![];
     for parser in parsers {
         if let Some(to_consume) = parser.matches(input) {
             // Fully matched?
@@ -56,11 +55,10 @@ fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
             let eventually_worked = try_parsers(parsers, &input[to_consume..]);
             if eventually_worked {
                 return true;
-                valid_parsers.push(parser);
             }
         }
     }
-    return valid_parsers.len() > 0;
+    return false;
 }
 
 
