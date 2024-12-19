@@ -12,6 +12,19 @@ fn main() {
 }
 
 fn part_1(data: &str) {
+    let (parsers, request_designs) = get_parsed_data(data);
+    
+    let mut valid_designs = 0;
+    for design in &request_designs {
+        let mut leftover = design.clone();
+        if try_parsers(&parsers, &leftover) {
+            valid_designs += 1;
+        }
+    }
+    println!("Valid designs {:?}", valid_designs);
+}
+
+fn get_parsed_data(data: &str) -> (Vec<Design>, Vec<Vec<TowelStripe>>) {
     let raw_designs = data
         .lines()
         .take_while(|line| !line.is_empty())
@@ -27,20 +40,13 @@ fn part_1(data: &str) {
 
     let request_designs = data
         .lines()
-            .skip_while(|line| !line.is_empty()).skip(1)
-            .map(|raw| {
-                raw.chars().filter_map(|c| TowelStripe::from(c)).collect::<Vec<TowelStripe>>()
-            })
-            .collect::<Vec<Vec<TowelStripe>>>();
-    
-    let mut valid_designs = 0;
-    for design in &request_designs {
-        let mut leftover = design.clone();
-        if try_parsers(&parsers, &leftover) {
-            valid_designs += 1;
-        }
-    }
-    println!("Valid designs {:?}", valid_designs);
+        .skip_while(|line| !line.is_empty()).skip(1)
+        .map(|raw| {
+            raw.chars().filter_map(|c| TowelStripe::from(c)).collect::<Vec<TowelStripe>>()
+        })
+        .collect::<Vec<Vec<TowelStripe>>>();
+
+    (parsers, request_designs)
 }
 
 fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
