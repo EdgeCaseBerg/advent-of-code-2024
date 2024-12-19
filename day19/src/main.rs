@@ -55,6 +55,7 @@ fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
             // Deepen the search for this parse
             let eventually_worked = try_parsers(parsers, &input[to_consume..]);
             if eventually_worked {
+                return true;
                 valid_parsers.push(parser);
             }
         }
