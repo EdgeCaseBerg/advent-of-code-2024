@@ -38,9 +38,15 @@ impl<T: Eq + Hash + Clone> GenericTrie<T> {
     pub fn insert(&mut self, design: &[T]) {
         let mut node = &mut self.root;
         for towel_stripe in design {
-            node = node.children.entry(towel_stripe.clone()).or_insert(GenericTrieNode::new())
+            node = node.children.entry(towel_stripe.clone()).or_default()
         }
         node.ends_a_word = true;
+    }
+}
+
+impl<T: Eq + Hash + Clone> Default for GenericTrie<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -56,5 +62,11 @@ impl<T> GenericTrieNode<T> {
             children: HashMap::new(),
             ends_a_word: false,
         }
+    }
+}
+
+impl<T> Default for GenericTrieNode<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }

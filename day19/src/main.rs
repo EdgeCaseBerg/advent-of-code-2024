@@ -29,7 +29,7 @@ fn part_2(data: &str) {
 
     let mut designs_to_find_arrangements_of = vec![];
     for design in &request_designs {
-        if try_parsers(&parsers, &design) {
+        if try_parsers(&parsers, design) {
             designs_to_find_arrangements_of.push(design);
         }
     }
@@ -51,7 +51,7 @@ fn count_combos(prefix_trie: &boilerplate::GenericTrie<TowelStripe>, design: &[T
     let mut combos_for_index = vec![0u64; len];
     combos_for_index[0] = 1;
     for i in 0..design.len() {
-        if combos_for_index[i] <= 0 {
+        if combos_for_index[i] == 0 {
             continue;
         }
 
@@ -78,11 +78,10 @@ fn get_parsed_data(data: &str) -> (Vec<Design>, Vec<Vec<TowelStripe>>) {
     let raw_designs = data
         .lines()
         .take_while(|line| !line.is_empty())
-        .map(|line| line.split(", ").collect::<Vec<&str>>())
-        .flatten()
+        .flat_map(|line| line.split(", ").collect::<Vec<&str>>())
         .collect::<Vec<&str>>();
     let parsers = raw_designs.iter().map(|raw| {
-        let design_tokens = raw.chars().filter_map(|c| TowelStripe::from(c)).collect::<Vec<TowelStripe>>();
+        let design_tokens = raw.chars().filter_map(TowelStripe::from).collect::<Vec<TowelStripe>>();
         Design {
             design: design_tokens
         }
@@ -92,7 +91,7 @@ fn get_parsed_data(data: &str) -> (Vec<Design>, Vec<Vec<TowelStripe>>) {
         .lines()
         .skip_while(|line| !line.is_empty()).skip(1)
         .map(|raw| {
-            raw.chars().filter_map(|c| TowelStripe::from(c)).collect::<Vec<TowelStripe>>()
+            raw.chars().filter_map(TowelStripe::from).collect::<Vec<TowelStripe>>()
         })
         .collect::<Vec<Vec<TowelStripe>>>();
 
@@ -114,7 +113,7 @@ fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
             }
         }
     }
-    return false;
+    false
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -162,11 +161,11 @@ impl Design {
             return None;
         }
 
-        for idx in 0..num_chars.min(num_tokens) {
+        for item in against.iter().take(num_chars.min(num_tokens)) {
             match chars.next() {
                 None => return None,
                 Some(char_to_match) => {
-                    if against[idx] == char_to_match {
+                    if *item == char_to_match {
                         matching.push(char_to_match.clone())
                     } else {
                         return None
@@ -174,7 +173,7 @@ impl Design {
                 }
             }
         }
-        return Some(matching.len());
+        Some(matching.len())
     }
 }
 
