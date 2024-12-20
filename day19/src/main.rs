@@ -1,5 +1,7 @@
 pub mod boilerplate;
 
+use std::collections::HashMap;
+
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
     if let Err(ref problem) = raw_data {
@@ -33,26 +35,50 @@ fn part_2(data: &str) {
             designs_to_find_arrangements_of.push(design);
         }
     }
+    let mut trie = Trie::new();
+    for prefixes in parsers {
+        trie.insert(&prefixes.to_word());
+    }
 
     let mut different_ways_to_make_design = 0;
-    for design in &designs_to_find_arrangements_of {
-        let mut paths = CounterNode {
-            design: parsers[0].clone(), // This first one doesn't matter.
-            children: vec![]
-        };
-        try_parsers_find_ways(&parsers, &design, &mut paths);
-        let leaves = paths.count_leaves();
-        println!("{:?}", design);
-        println!("COUNT {:?}", leaves);
-        /*
-         Gets everything right on sample EXCEPT for 
-        [Black, White, Blue, Red, Red, Green]
-        COUNT 2 instead of count 1
-        */
-        different_ways_to_make_design += leaves;
+    for design in request_designs {
+        let mut s: String = String::new();
+        for c in &design {
+            s.push(c.to_str());
+        }
+        different_ways_to_make_design += count_combos(&trie, &s);
     }
-    println!("{:?}", different_ways_to_make_design);
 
+    println!("{:?}", different_ways_to_make_design);
+}
+
+fn count_combos(prefix_trie: &Trie, for_this_word: &str) -> u64 {
+    let len = for_this_word.len() + 1;
+    let mut combos_for_index = vec![0u64; len];
+    combos_for_index[0] = 1;
+    for i in 0..for_this_word.len() {
+        if combos_for_index[i] <= 0 {
+            continue;
+        }
+
+        let mut node = &prefix_trie.root;
+        let mut j = i;
+        let chars: Vec<char> = for_this_word.chars().collect();
+
+        while j < for_this_word.len() {
+            if let Some(next) = node.children.get(&chars[j]) {
+                node = next;
+                if node.ends_a_word {
+                    combos_for_index[j + 1] += combos_for_index[i];
+                }
+                j += 1;
+            } else {   
+                break;
+            }
+        }
+    }
+
+    combos_for_index[for_this_word.len()]
 }
 
 
@@ -100,54 +126,45 @@ fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
 }
 
 #[derive(Debug)]
-struct CounterNode {
-    design: Design,
-    children: Vec<CounterNode>
+struct TrieNode {
+    ends_a_word: bool,
+    // we'll use chars for now because I'm not sure exactly if this work if I store my tokens
+    // without doing some extra stuff I'm not familiar with yet. 
+    children: HashMap<char, TrieNode>
 }
 
-impl CounterNode {
-    fn count_leaves(&self) -> u64 {
-        if self.children.is_empty() {
-            // println!("LEAF {:?}", self.design);
-            return 1;
+impl TrieNode {
+    fn new() -> Self {
+        TrieNode {
+            children: HashMap::new(),
+            ends_a_word: false,
         }
-        let mut leaves = 0;
-        for node in self.children.iter() {
-            leaves += node.count_leaves();
-        }
-        return leaves;
     }
 }
 
-fn try_parsers_find_ways(parsers: &Vec<Design>, input: &[TowelStripe], paths: &mut CounterNode) {
-    let mut combos_that_worked = 0;
-    for parser in parsers {
-        // If this parser _has_ a solution from this point, then explore!
-        if !try_parsers(parsers, input) {
-            continue;
-        }
+#[derive(Debug)]
+struct Trie {
+    root: TrieNode
+}
 
-        let mut new_node = CounterNode {
-            design: parser.clone(),
-            children: vec![]
-        };
-
-        if let Some(to_consume) = parser.matches(input) {
-            // Fully matched?
-            if to_consume == input.len() {
-                // This is a full path.
-            } else {
-                // Deepen the search for this parse
-                try_parsers_find_ways(parsers, &input[to_consume..], &mut new_node);
-            }
-            paths.children.push(new_node);
+impl Trie {
+    fn new() -> Trie {
+        Trie {
+            root: TrieNode::new()
         }
-        
-        
+    }
+
+    fn insert(&mut self, word: &str) {
+        let mut node = &mut self.root;
+        for character in word.chars() {
+            node = node.children.entry(character).or_insert(TrieNode::new())
+        }
+        node.ends_a_word = true;
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
+
 enum TowelStripe {
     White,
     Blue,
@@ -174,13 +191,15 @@ impl TowelStripe {
         }
     }
 
-    fn is_value(&self, value: &char) -> bool {
-        if let Some(stripe) = TowelStripe::from(*value) {
-            *self == stripe
-        } else {
-            false
+    fn to_str(&self) -> char {
+        match self {
+            TowelStripe::White  => 'w',
+            TowelStripe::Blue  => 'u',
+            TowelStripe::Black  => 'b',
+            TowelStripe::Red  => 'r',
+            TowelStripe::Green => 'g',
         }
-    }    
+    }  
 }
 
 #[derive(Debug, Clone)]
@@ -189,6 +208,15 @@ struct Design {
 }
 
 impl Design {
+
+    fn to_word(&self) -> String {
+        let mut s = String::new();
+        for towel_stripe in &self.design {
+            s.push(towel_stripe.to_str());
+        }
+        s
+    } 
+
     fn matches(&self, against: &[TowelStripe]) -> Option<usize> {
         let num_tokens = against.len();
         let num_chars = self.design.len();
