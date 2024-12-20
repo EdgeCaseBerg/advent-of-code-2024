@@ -43,36 +43,69 @@ fn part_2(data: &str) {
         different_ways_to_make_design += count_combos(&trie, &design);
     }
 
-    println!("{:?}", different_ways_to_make_design);
+    println!("How many ways? {:?}", different_ways_to_make_design);
 }
 
-fn count_combos(prefix_trie: &boilerplate::GenericTrie<TowelStripe>, design: &[TowelStripe]) -> u64 {
-    let len = design.len() + 1;
-    let mut combos_for_index = vec![0u64; len];
-    combos_for_index[0] = 1;
-    for i in 0..design.len() {
-        if combos_for_index[i] == 0 {
-            continue;
-        }
 
-        let mut node = &prefix_trie.root;
-        let mut j = i;
-        while j < design.len() {
-            if let Some(next) = node.children.get(&design[j]) {
-                node = next;
-                if node.ends_a_word {
-                    combos_for_index[j + 1] += combos_for_index[i];
-                }
-                j += 1;
-            } else {   
-                break;
-            }
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+enum TowelStripe {
+    White,
+    Blue,
+    Black,
+    Red,
+    Green
+}
+impl TowelStripe {
+    fn from(c: char) -> Option<TowelStripe> {
+        match c {
+            'w' | 'u' | 'b' | 'r' | 'g' => Some(TowelStripe::of(c)),
+            _ => None
         }
     }
 
-    combos_for_index[design.len()]
+    fn of(c: char) -> TowelStripe {
+        match c {
+            'w' => TowelStripe::White,
+            'u' => TowelStripe::Blue,
+            'b' => TowelStripe::Black,
+            'r' => TowelStripe::Red,
+            'g' => TowelStripe::Green,
+            _ => panic!("Invalid character given for towel")
+        }
+    }
 }
 
+#[derive(Debug, Clone)]
+struct Design {
+    design: Vec<TowelStripe>,
+}
+
+impl Design {
+    fn matches(&self, against: &[TowelStripe]) -> Option<usize> {
+        let num_tokens = against.len();
+        let num_chars = self.design.len();
+        let mut chars = self.design.clone().into_iter();
+        let mut matching = Vec::new();
+
+        if num_chars > against.len() {
+            return None;
+        }
+
+        for item in against.iter().take(num_chars.min(num_tokens)) {
+            match chars.next() {
+                None => return None,
+                Some(char_to_match) => {
+                    if *item == char_to_match {
+                        matching.push(char_to_match.clone())
+                    } else {
+                        return None
+                    }
+                }
+            }
+        }
+        Some(matching.len())
+    }
+}
 
 fn get_parsed_data(data: &str) -> (Vec<Design>, Vec<Vec<TowelStripe>>) {
     let raw_designs = data
@@ -116,64 +149,31 @@ fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
     false
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Hash)]
-enum TowelStripe {
-    White,
-    Blue,
-    Black,
-    Red,
-    Green
-}
-impl TowelStripe {
-    fn from(c: char) -> Option<TowelStripe> {
-        match c {
-            'w' | 'u' | 'b' | 'r' | 'g' => Some(TowelStripe::of(c)),
-            _ => None
-        }
-    }
 
-    fn of(c: char) -> TowelStripe {
-        match c {
-            'w' => TowelStripe::White,
-            'u' => TowelStripe::Blue,
-            'b' => TowelStripe::Black,
-            'r' => TowelStripe::Red,
-            'g' => TowelStripe::Green,
-            _ => panic!("Invalid character given for towel")
-        }
-    }
-
-}
-
-#[derive(Debug, Clone)]
-struct Design {
-    design: Vec<TowelStripe>,
-}
-
-impl Design {
-    fn matches(&self, against: &[TowelStripe]) -> Option<usize> {
-        let num_tokens = against.len();
-        let num_chars = self.design.len();
-        let mut chars = self.design.clone().into_iter();
-        let mut matching = Vec::new();
-
-        if num_chars > against.len() {
-            return None;
+fn count_combos(prefix_trie: &boilerplate::GenericTrie<TowelStripe>, design: &[TowelStripe]) -> u64 {
+    let len = design.len() + 1;
+    let mut combos_for_index = vec![0u64; len];
+    combos_for_index[0] = 1;
+    for i in 0..design.len() {
+        if combos_for_index[i] == 0 {
+            continue;
         }
 
-        for item in against.iter().take(num_chars.min(num_tokens)) {
-            match chars.next() {
-                None => return None,
-                Some(char_to_match) => {
-                    if *item == char_to_match {
-                        matching.push(char_to_match.clone())
-                    } else {
-                        return None
-                    }
+        let mut node = &prefix_trie.root;
+        let mut j = i;
+        while j < design.len() {
+            if let Some(next) = node.children.get(&design[j]) {
+                node = next;
+                if node.ends_a_word {
+                    combos_for_index[j + 1] += combos_for_index[i];
                 }
+                j += 1;
+            } else {   
+                break;
             }
         }
-        Some(matching.len())
     }
+
+    combos_for_index[design.len()]
 }
 

@@ -1,9 +1,11 @@
 use std::{
     env,
-    fs
+    fs,
+    collections:: {
+        HashMap
+    },
+    hash::Hash
 };
-
-
 
 fn get_filename_from_args() -> Option<String> {
     let arguments: Vec<String> = env::args().skip(1).collect();
@@ -20,8 +22,6 @@ pub fn get_sample_if_no_input() -> Result<String, std::io::Error> {
         Some(filename) => fs::read_to_string(filename)
     }
 }
-use std::collections::HashMap;
-use std::hash::Hash;
 
 #[derive(Debug)]
 pub struct GenericTrie<T: Eq + Hash + Clone> {
