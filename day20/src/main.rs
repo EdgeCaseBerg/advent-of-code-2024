@@ -1,5 +1,5 @@
 pub mod boilerplate;
-// use std::collections::HashMap;
+use std::collections::HashMap;
 // use std::cmp::Reverse;
 // use std::collections::BinaryHeap;
 use std::collections::VecDeque;
@@ -72,7 +72,8 @@ fn part_1(data: &str) {
     // Ok, we have a giant matrix of step counts to path. Check for cheats.
     // Ignore first row/column and last to not consider walls.
     let mut number_of_cheats_saving_time = 0;
-    let at_least_this_much = 0;
+    let at_least_this_much = 100;
+    let mut cheats_by_saved = HashMap::new();
     for row in 1..matrix.len() - 1 {
         for col in 1..matrix[row].len() - 1 {
             if matrix[row][col] == NodeType::Wall {
@@ -84,12 +85,11 @@ fn part_1(data: &str) {
                 // Check horizontal cheat across this wall from w -> e
                 if matrix[row][west_col] != NodeType::Wall && matrix[row][east_col] != NodeType::Wall {
                     let west_count = step_counts_by_zone[row][west_col];
-                    let east_count   = step_counts_by_zone[row][west_col];
-                    // cheats are distinct by start to end position. So east to west and west to east are different.
-                    if west_count - east_count >= at_least_this_much {
-                        number_of_cheats_saving_time += 1
-                    }
-                    if east_count - west_count >= at_least_this_much {
+                    let east_count   = step_counts_by_zone[row][east_col];
+                    let diff_in_steps = west_count - east_count;
+                    cheats_by_saved.entry(diff_in_steps.abs() - 2).and_modify(|c| *c += 1).or_insert(1);
+                    // -2 because we dont count the two steps we'll take as part of the saved time
+                    if diff_in_steps.abs() - 2 >= at_least_this_much {
                         number_of_cheats_saving_time += 1
                     }
                 }
@@ -97,11 +97,10 @@ fn part_1(data: &str) {
                 if matrix[south_row][col] != NodeType::Wall && matrix[north_row][col] != NodeType::Wall {
                     let south_count = step_counts_by_zone[south_row][col];
                     let north_count = step_counts_by_zone[north_row][col];
-                    // cheats are distinct by start to end position.
-                    if south_count - north_count >= at_least_this_much {
-                        number_of_cheats_saving_time += 1
-                    }
-                    if north_count - south_count >= at_least_this_much {
+                    let diff_in_steps = south_count - north_count;
+                    // -2 because we dont count the two steps we'll take as part of the saved time
+                    cheats_by_saved.entry(diff_in_steps.abs() - 2).and_modify(|c| *c += 1).or_insert(1);
+                    if diff_in_steps.abs() - 2 >= at_least_this_much {
                         number_of_cheats_saving_time += 1
                     }
                 }
@@ -111,8 +110,14 @@ fn part_1(data: &str) {
     
     // sample should say 2 + 4 + 6 + 8 + 10+ 12+ 20+ 36+ 38+ 40+ 64 = 240
     // too high 11278, 5639
-    // too low 702, not right 10633
-    println!("Part 1: {:?}", number_of_cheats_saving_time);
+    // too low 702, not right 10633, not right 7043
+    let mut huh = 0;
+    for (key, count) in &cheats_by_saved {
+        if *key >= at_least_this_much {
+            huh += count;
+        }
+    }
+    println!("Part 1: {:?} {:?}", huh, number_of_cheats_saving_time);
 }
 
 fn part_2(data: &str) {
