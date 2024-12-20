@@ -96,7 +96,7 @@ fn apply_cheat(matrix: &Matrix, from_position: Position) -> Vec<Matrix> {
             continue;
         }
 
-        if matrix[cheat_row_end][cheat_col_end] != NodeType::Path || matrix[cheat_row_end][cheat_col_end] != NodeType::End {
+        if matrix[cheat_row_end][cheat_col_end] != NodeType::Path && matrix[cheat_row_end][cheat_col_end] != NodeType::End {
             continue;
         }
 
