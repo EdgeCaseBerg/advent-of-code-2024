@@ -111,7 +111,7 @@ fn get_parsed_data(data: &str) -> (Vec<Design>, Vec<Vec<TowelStripe>>) {
     let raw_designs = data
         .lines()
         .take_while(|line| !line.is_empty())
-        .flat_map(|line| line.split(", ").collect::<Vec<&str>>())
+        .flat_map(|line| line.split(", "))
         .collect::<Vec<&str>>();
     let parsers = raw_designs.iter().map(|raw| {
         let design_tokens = raw.chars().filter_map(TowelStripe::from).collect::<Vec<TowelStripe>>();
