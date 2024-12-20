@@ -18,42 +18,22 @@ fn part_1(data: &str) {
     let (matrix, start_pos, end_pos) = parse_data_to_graph(data);
     // First let's find the length of the best path so we know how many seconds we would save.
 
-    let no_cheating_result = dijkstra(&matrix, start_pos, end_pos).unwrap();
-    println!("Time to beat is {:?}", no_cheating_result.distances[&end_pos]);
+    let no_cheating_result = dijkstra(&matrix, start_pos, end_pos, None, u64::MAX).unwrap();
+    let time_to_beat = no_cheating_result.distances[&end_pos] as u64;
+    println!("Time to beat is {:?}", time_to_beat);
 
-    // Now just loop and create a "cheat" map for position on the best path and then compute
-    // the best path from there.
-    let must_save_at_least = 100;
-    let mut maybe_position = Some(end_pos);
+    let x = apply_cheat(&matrix, (2,1));
+    println!("{:?}", x);
+
+    // Cheat!
     let mut number_of_cheats_saving_time = 0;
-    let mut finished_checking_start_node = false;
-    loop {
-        if maybe_position.is_none() {
-            finished_checking_start_node = true;
-            maybe_position = Some(start_pos);
-        }
-        let position = maybe_position.unwrap();
-
-        // We have a position to cheat from! 
-        let new_matrices = apply_cheat(&matrix, position);
-
-        if new_matrices.len() > 0 {
-            for cheated_matrix in new_matrices {
-                let cheat_result = dijkstra(&cheated_matrix, start_pos, end_pos).unwrap();
-                let time = cheat_result.distances[&end_pos];
-                println!("cheat time {:?}", time);
-                if time <= must_save_at_least {
-                    number_of_cheats_saving_time += 1
-                }
-            }
-        }
-
-        // Prep for the next loop or finish up.
-        maybe_position = no_cheating_result.prev[&position];
-        if finished_checking_start_node {
-            break;
+    for row in 0..matrix.len() {
+        for col in 0..matrix[row].len() {
+            let cheating_result = dijkstra(&matrix, start_pos, end_pos, Some((row, col)), time_to_beat).unwrap();
+            number_of_cheats_saving_time += cheating_result.cheats_beating_min_time;
         }
     }
+
     println!("Part 1: {:?}", number_of_cheats_saving_time);
 }
 
@@ -100,8 +80,6 @@ fn apply_cheat(matrix: &Matrix, from_position: Position) -> Vec<Matrix> {
             continue;
         }
 
-        println!("made a cheat world");
-
         let mut cheat_worldview = matrix.clone();
         cheat_worldview[cheat_row_start][cheat_col_start] = NodeType::Path;
         matrices.push(cheat_worldview);
@@ -146,9 +124,10 @@ fn parse_data_to_graph(data: &str) -> (Matrix, Position, Position) {
 struct DijkstraResult {
     distances: HashMap<Position, usize>, // Distance to each position
     prev: HashMap<Position, Option<Position>>, // Previous node in the path
+    cheats_beating_min_time: u64,
 }
 
-fn dijkstra(matrix: &Matrix, start: Position, end: Position) -> Option<DijkstraResult> {
+fn dijkstra(matrix: &Matrix, start: Position, end: Position, cheat_position: Option<Position>, time_to_beat: u64) -> Option<DijkstraResult> {
     let rows = matrix.len();
     let cols = matrix[0].len();
     
@@ -191,6 +170,24 @@ fn dijkstra(matrix: &Matrix, start: Position, end: Position) -> Option<DijkstraR
         if current_distance > distances[&current_position] {
             continue;
         }
+
+
+        if cheat_position.is_some() && cheat_position.unwrap() == current_position {
+            let must_save_at_least = 100;
+            let new_matrices = apply_cheat(&matrix, current_position);
+            let mut number_of_cheats_saving_time_at_this_position = 0;
+            if new_matrices.len() > 0 {
+                for cheated_matrix in new_matrices {
+                    let cheat_result = dijkstra(&cheated_matrix, start, end, None, time_to_beat).unwrap();
+                    let time = cheat_result.distances[&end];
+                    if time_to_beat - time as u64 <= must_save_at_least {
+                        println!("save {:?}", time_to_beat - time as u64);
+                        number_of_cheats_saving_time_at_this_position += 1
+                    }
+                }
+            }
+            return Some(DijkstraResult { distances, prev, cheats_beating_min_time: number_of_cheats_saving_time_at_this_position });
+        }
         
         // Explore neighbors
         for neighbor in neighbors(current_position) {
@@ -214,6 +211,6 @@ fn dijkstra(matrix: &Matrix, start: Position, end: Position) -> Option<DijkstraR
         return None;
     }
     
-    Some(DijkstraResult { distances, prev })
+    Some(DijkstraResult { distances, prev, cheats_beating_min_time: 0 })
 }
 
