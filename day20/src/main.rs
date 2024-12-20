@@ -180,7 +180,7 @@ fn dijkstra(matrix: &Matrix, start: Position, end: Position, cheat_position: Opt
                 for cheated_matrix in new_matrices {
                     let cheat_result = dijkstra(&cheated_matrix, start, end, None, time_to_beat).unwrap();
                     let time = cheat_result.distances[&end];
-                    if time_to_beat > time as u64 && time_to_beat - time as u64 <= must_save_at_least {
+                    if (time as u64) < time_to_beat && time_to_beat - time as u64 <= must_save_at_least {
                         println!("save {:?}", time_to_beat - time as u64);
                         number_of_cheats_saving_time_at_this_position += 1
                     }
