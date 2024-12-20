@@ -30,8 +30,8 @@ pub struct GenericTrie<T: Eq + Hash + Clone> {
 
 impl<T: Eq + Hash + Clone> GenericTrie<T> {
     pub fn new() -> GenericTrie<T> {
-        GenericTrie::<T> {
-            root: GenericTrieNode::<T>::new()
+        GenericTrie {
+            root: GenericTrieNode::new()
         }
     }
 
@@ -58,7 +58,7 @@ pub struct GenericTrieNode<T> {
 
 impl<T> GenericTrieNode<T> {
     pub fn new() -> Self {
-        GenericTrieNode::<T> {
+        GenericTrieNode {
             children: HashMap::new(),
             ends_a_word: false,
         }
