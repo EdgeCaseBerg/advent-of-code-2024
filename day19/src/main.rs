@@ -1,7 +1,5 @@
 pub mod boilerplate;
 
-use std::collections::HashMap;
-
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
     if let Err(ref problem) = raw_data {
@@ -35,9 +33,9 @@ fn part_2(data: &str) {
             designs_to_find_arrangements_of.push(design);
         }
     }
-    let mut trie = Trie::new();
+    let mut trie = boilerplate::GenericTrie::new();
     for pattern in parsers {
-        trie.insert(&pattern);
+        trie.insert(&pattern.design);
     }
 
     let mut different_ways_to_make_design = 0;
@@ -48,7 +46,7 @@ fn part_2(data: &str) {
     println!("{:?}", different_ways_to_make_design);
 }
 
-fn count_combos(prefix_trie: &Trie, design: &[TowelStripe]) -> u64 {
+fn count_combos(prefix_trie: &boilerplate::GenericTrie<TowelStripe>, design: &[TowelStripe]) -> u64 {
     let len = design.len() + 1;
     let mut combos_for_index = vec![0u64; len];
     combos_for_index[0] = 1;
@@ -119,44 +117,6 @@ fn try_parsers(parsers: &Vec<Design>, input: &[TowelStripe]) -> bool {
     return false;
 }
 
-#[derive(Debug)]
-struct TrieNode {
-    ends_a_word: bool,
-    // we'll use chars for now because I'm not sure exactly if this work if I store my tokens
-    // without doing some extra stuff I'm not familiar with yet. 
-    children: HashMap<TowelStripe, TrieNode>
-}
-
-impl TrieNode {
-    fn new() -> Self {
-        TrieNode {
-            children: HashMap::new(),
-            ends_a_word: false,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Trie {
-    root: TrieNode
-}
-
-impl Trie {
-    fn new() -> Trie {
-        Trie {
-            root: TrieNode::new()
-        }
-    }
-
-    fn insert(&mut self, design: &Design) {
-        let mut node = &mut self.root;
-        for towel_stripe in (*design.design).iter() {
-            node = node.children.entry(towel_stripe.clone()).or_insert(TrieNode::new())
-        }
-        node.ends_a_word = true;
-    }
-}
-
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 enum TowelStripe {
     White,
@@ -184,15 +144,6 @@ impl TowelStripe {
         }
     }
 
-    fn to_str(&self) -> char {
-        match self {
-            TowelStripe::White  => 'w',
-            TowelStripe::Blue  => 'u',
-            TowelStripe::Black  => 'b',
-            TowelStripe::Red  => 'r',
-            TowelStripe::Green => 'g',
-        }
-    }  
 }
 
 #[derive(Debug, Clone)]
@@ -201,14 +152,6 @@ struct Design {
 }
 
 impl Design {
-    fn to_word(&self) -> String {
-        let mut s = String::new();
-        for towel_stripe in &self.design {
-            s.push(towel_stripe.to_str());
-        }
-        s
-    } 
-
     fn matches(&self, against: &[TowelStripe]) -> Option<usize> {
         let num_tokens = against.len();
         let num_chars = self.design.len();
