@@ -36,37 +36,31 @@ fn part_2(data: &str) {
         }
     }
     let mut trie = Trie::new();
-    for prefixes in parsers {
-        trie.insert(&prefixes.to_word());
+    for pattern in parsers {
+        trie.insert(&pattern);
     }
 
     let mut different_ways_to_make_design = 0;
     for design in request_designs {
-        let mut s: String = String::new();
-        for c in &design {
-            s.push(c.to_str());
-        }
-        different_ways_to_make_design += count_combos(&trie, &s);
+        different_ways_to_make_design += count_combos(&trie, &design);
     }
 
     println!("{:?}", different_ways_to_make_design);
 }
 
-fn count_combos(prefix_trie: &Trie, for_this_word: &str) -> u64 {
-    let len = for_this_word.len() + 1;
+fn count_combos(prefix_trie: &Trie, design: &[TowelStripe]) -> u64 {
+    let len = design.len() + 1;
     let mut combos_for_index = vec![0u64; len];
     combos_for_index[0] = 1;
-    for i in 0..for_this_word.len() {
+    for i in 0..design.len() {
         if combos_for_index[i] <= 0 {
             continue;
         }
 
         let mut node = &prefix_trie.root;
         let mut j = i;
-        let chars: Vec<char> = for_this_word.chars().collect();
-
-        while j < for_this_word.len() {
-            if let Some(next) = node.children.get(&chars[j]) {
+        while j < design.len() {
+            if let Some(next) = node.children.get(&design[j]) {
                 node = next;
                 if node.ends_a_word {
                     combos_for_index[j + 1] += combos_for_index[i];
@@ -78,7 +72,7 @@ fn count_combos(prefix_trie: &Trie, for_this_word: &str) -> u64 {
         }
     }
 
-    combos_for_index[for_this_word.len()]
+    combos_for_index[design.len()]
 }
 
 
@@ -130,7 +124,7 @@ struct TrieNode {
     ends_a_word: bool,
     // we'll use chars for now because I'm not sure exactly if this work if I store my tokens
     // without doing some extra stuff I'm not familiar with yet. 
-    children: HashMap<char, TrieNode>
+    children: HashMap<TowelStripe, TrieNode>
 }
 
 impl TrieNode {
@@ -154,17 +148,16 @@ impl Trie {
         }
     }
 
-    fn insert(&mut self, word: &str) {
+    fn insert(&mut self, design: &Design) {
         let mut node = &mut self.root;
-        for character in word.chars() {
-            node = node.children.entry(character).or_insert(TrieNode::new())
+        for towel_stripe in (*design.design).iter() {
+            node = node.children.entry(towel_stripe.clone()).or_insert(TrieNode::new())
         }
         node.ends_a_word = true;
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
-
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
 enum TowelStripe {
     White,
     Blue,
@@ -208,7 +201,6 @@ struct Design {
 }
 
 impl Design {
-
     fn to_word(&self) -> String {
         let mut s = String::new();
         for towel_stripe in &self.design {
