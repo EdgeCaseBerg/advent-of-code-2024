@@ -17,18 +17,15 @@ fn main() {
 
 fn part_1(data: &str) {
     let mut complexity_sum = 0;
+    let cache = &mut HashMap::new();
     let codes = get_codes(data);
     for code in codes {
-        let presses = get_presses(code, &KeyPad::numeric_keypard());
-        let presses = get_presses(&presses, &KeyPad::directional_keypad());
-        let presses = get_presses(&presses, &KeyPad::directional_keypad());
-        let presses = get_presses(&presses, &KeyPad::directional_keypad());
-        let complexity = presses.len() as u64 * get_numeric_of(code);
+        let presses = get_presses(code, 3, true, cache);
+        let complexity = presses as u64 * get_numeric_of(code);
         complexity_sum += complexity;
     }
+    // Input sample shuld be 126384
     println!("Part 1 {:?}", complexity_sum);
-
-    println!("{:?}", &KeyPad::numeric_keypard().paths());
 }
 
 fn part_2(data: &str) {
@@ -131,10 +128,10 @@ impl KeyPad {
                 if shortest >= path.len() {
                     shortest = path.len();
                     // Leaving this here because I feel like I might want to do this. But not sure yet.
-                    // let mut new_path = path.clone();
-                    // new_path.push(Press);
-                    // paths.push(new_path);
-                    paths.push(path);
+                    let mut new_path = path.clone();
+                    new_path.push(Press);
+                    paths.push(new_path);
+                    // paths.push(path);
                 }
                 continue;
             }
@@ -155,7 +152,32 @@ impl KeyPad {
     }
 }
 
-fn get_presses(target: &str, keypad: &KeyPad) -> String {
+fn actions_to_direction_string(actions: Vec<Action>) -> String {
+    let mut s = String::new();
+    for action in &actions {
+        match action {
+            Up => s.push('^'),
+            Left => s.push('<'),
+            Right => s.push('>'),
+            Down => s.push('v'),
+            Press => s.push('A'),
+        }
+    }
+    s
+}
+
+fn get_presses(target: &str, indirection_level: u64, is_human: bool, cache: &mut HashMap<(&str, u64, bool), usize>) -> usize {
+    if let Some(cached) = cache.get(&(target, indirection_level, is_human)) {
+        return *cached;
+    }
+
+    let keypad = if is_human {
+        KeyPad::numeric_keypard()
+    } else {
+        KeyPad::directional_keypad()
+    };
+
+    // Honestly should maybe cache this somehow too, it's not like the paths change between each type. Right?
     let paths = keypad.paths();
     let start = keypad.buttons[keypad.position.0][keypad.position.1];
     let mut sequence = vec![];
@@ -165,6 +187,7 @@ fn get_presses(target: &str, keypad: &KeyPad) -> String {
     }
     let mut sequence = sequence.iter();
     let mut from = sequence.next().unwrap();
+    let mut total_button_presses = 0;
     loop {
         let maybe_to = sequence.next();
         if maybe_to.is_none() {
@@ -172,13 +195,23 @@ fn get_presses(target: &str, keypad: &KeyPad) -> String {
         }
         let to = maybe_to.unwrap();
         let shortest_paths = paths.get(&(*from, *to)).unwrap();
-        println!("{:?}", shortest_paths);
-
+        let presses = match indirection_level {
+            0 => {
+                // At the human level. We just need to know what the shortest path is. So...
+                shortest_paths[0].len()
+            }
+            _ => {
+                let presses_for_each_path = shortest_paths.iter().cloned().map(|path| {
+                    let new_target = actions_to_direction_string(path);
+                    get_presses(&new_target, indirection_level - 1, false, cache)
+                });
+                presses_for_each_path.min().unwrap()
+            }
+        };
+        total_button_presses += presses;
         from = to;
     }
-    
-    
-    "".to_string()
+    total_button_presses
 }
 
 
