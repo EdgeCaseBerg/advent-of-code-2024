@@ -146,7 +146,6 @@ fn part_2(data: &str) {
     let mut queue = VecDeque::new();
     let mut visited = HashSet::new();
     let mut distance_to_get_to: i64 = 0;
-    let at_least_this_much = 100;
     queue.push_back(start_pos);
     step_counts_by_zone[start_pos.0][start_pos.1] = 0;
     while let Some(current_pos) = queue.pop_front() {
@@ -175,12 +174,14 @@ fn part_2(data: &str) {
         }
     }
 
+    println!("{:?}", step_counts_by_zone);
+
     // Now, we need to explore the path _again_ (DFS style?), but this time. We need to cheat.
     // So traverse the path again, but this time, don't skip when we see a wall (that isn't out of bounds)
     // and instead allow the path to be explored up to 20 times. If the path we are cheating to
     // is a valid place to end up (even less than 20, then add it as a potential cheat)
     let mut cheats_by_position: HashMap<(Position, Position), i64> = HashMap::new() ;
-    let mut cheats_by_position_and_time: HashMap<(Position, Position, i64), i64> = HashMap::new(); // for debugging.
+    let mut cheats_by_position_and_time: HashMap<i64, i64> = HashMap::new(); // for debugging.
     let mut queue = VecDeque::new();
     queue.push_back(start_pos);
     let mut visited = HashSet::new();
@@ -210,19 +211,29 @@ fn part_2(data: &str) {
                             continue;
                         }
 
-                        let next_row = (current_pos.0 as isize + offset_r as isize) as usize;
-                        let next_col = (current_pos.1 as isize + offset_c as isize) as usize;
-                        if !in_bounds(next_row, next_col) {
+                        let next_row = (row as isize + offset_r as isize) as usize;
+                        let next_col = (col as isize + offset_c as isize) as usize;
+                        if !in_bounds(next_row, next_col) || matrix[next_row][next_col] == NodeType::Wall {
                             continue
                         }
 
-                        let time_saved_by_cheat = step_counts_by_zone[next_row][next_col];
-                        let diff_in_steps = (steps_to_position - time_saved_by_cheat).abs() - 2;
-
-                        if diff_in_steps.abs() - 2 >= at_least_this_much {
-                            cheats_by_position.entry(((row,col), (next_row, next_col))).and_modify(|c| *c += 1).or_insert(1);
-                            cheats_by_position_and_time.entry( ((row,col), (next_row, next_col), diff_in_steps) ).and_modify(|c| *c += 1).or_insert(1);
+                        let is_same_cheat = cheats_by_position.contains_key(&((row,col), (next_row, next_col)));
+                        if is_same_cheat {
+                            if next_row == 7 && next_col == 3 {
+                                println!("{:?}", (row, col, next_row, next_col));
+                            }
+                            continue;
                         }
+
+                        if step_counts_by_zone[next_row][next_col] < steps_to_position {
+                            continue; // do not go backwards on the path
+                        }
+
+                        let time_saved_by_cheat = step_counts_by_zone[next_row][next_col];
+                        let diff_in_steps = (time_saved_by_cheat - manhatten).abs();
+
+                        cheats_by_position.entry(((row,col), (next_row, next_col))).and_modify(|c| *c += 1).or_insert(1);
+                        cheats_by_position_and_time.entry(diff_in_steps).and_modify(|c| *c += 1).or_insert(1);
                     }
                 }
                 continue;
@@ -231,22 +242,31 @@ fn part_2(data: &str) {
         }
     }
 
-    println!("{:?}", cheats_by_position);
-    println!("{:?}", cheats_by_position_and_time);
+    // println!("{:?}", cheats_by_position);
+    // println!("{:?}", cheats_by_position_and_time);
 
-    let mut answer = 0;
-    for ((start, end), number) in cheats_by_position {
-        answer += number;
+    let mut sample_answer = 0;
+    for (cost_savings, number) in &cheats_by_position_and_time {
+        println!("{:?} -> {:?} ", number, cost_savings);
+        if *cost_savings >= 50 {
+            sample_answer += number
+        }
     }
 
     let mut answer_two = 0;
-    for ((start, end, cost_savings), number) in cheats_by_position_and_time {
-        if cost_savings >= 100 {
+    for (cost_savings, number) in &cheats_by_position_and_time {
+        // println!("{:?} -> {:?} ", number, cost_savings);
+        if *cost_savings >= 100 {
             answer_two += number
         }
     }
+
+    // sample has 285 cheats that save 50ps or more.
     // 23544 is too low
-    println!("{:?}", answer);
+    // 11688555 is too high
+    // 10489783 is too high 
+    // 1746817 is not correct
+    println!("{:?}", sample_answer);
     println!("{:?}", answer_two); // Just confirming it is the same
 }
 
