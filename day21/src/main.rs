@@ -90,9 +90,9 @@ impl KeyPad {
             ],
             position: (0, 2),
             neighbors: HashMap::from([
-                ('^', vec![ ('v', Up   ), ('A', Right)               ]),
-                ('A', vec![ ('^', Left ), ('<', Down )               ]),
-                ('>', vec![ ('v', Right), ('A', Up   )               ]),
+                ('^', vec![ ('v', Down ), ('A', Right)               ]),
+                ('A', vec![ ('^', Left ), ('>', Down )               ]),
+                ('>', vec![ ('v', Left ), ('A', Up   )               ]),
                 ('v', vec![ ('^', Up,  ), ('<', Left ), ('>', Right) ]),
                 ('<', vec![ ('v', Right)                             ]),
             ])
