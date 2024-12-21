@@ -27,6 +27,8 @@ fn part_1(data: &str) {
         complexity_sum += complexity;
     }
     println!("Part 1 {:?}", complexity_sum);
+
+    println!("{:?}", &KeyPad::numeric_keypard().paths());
 }
 
 fn part_2(data: &str) {
@@ -153,9 +155,30 @@ impl KeyPad {
     }
 }
 
-fn get_presses(target: &str, _keypad: &KeyPad) -> String {
-    // TODO
-    target.to_string()
+fn get_presses(target: &str, keypad: &KeyPad) -> String {
+    let paths = keypad.paths();
+    let start = keypad.buttons[keypad.position.0][keypad.position.1];
+    let mut sequence = vec![];
+    sequence.push(start);
+    for c in target.chars() {
+        sequence.push(c);
+    }
+    let mut sequence = sequence.iter();
+    let mut from = sequence.next().unwrap();
+    loop {
+        let maybe_to = sequence.next();
+        if maybe_to.is_none() {
+            break;
+        }
+        let to = maybe_to.unwrap();
+        let shortest_paths = paths.get(&(*from, *to)).unwrap();
+        println!("{:?}", shortest_paths);
+
+        from = to;
+    }
+    
+    
+    "".to_string()
 }
 
 
