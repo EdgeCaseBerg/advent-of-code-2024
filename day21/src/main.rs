@@ -13,55 +13,52 @@ fn main() {
 }
 
 fn part_1(data: &str) {
-    // let (matrix, start_pos, _) = parse_data_to_graph(data);
-    let _foo = data;
+    let mut complexity_sum = 0;
+    let codes = get_codes(data);
+    for code in codes {
+        let presses = get_presses(code, numeric_keypard());
+        let presses = get_presses(presses, directional_keypad());
+        let presses = get_presses(presses, directional_keypad());
+        let presses = get_presses(presses, directional_keypad());
+        let complexity = presses.len() as u64 * get_numeric_of(code);
+        complexity_sum += complexity;
+    }
+    println!("Part 1 {:?}", complexity_sum);
 }
 
 fn part_2(data: &str) {
     let _foo = data;
 }
 
-
-type Matrix = Vec<Vec<NodeType>>;
-type Position = (usize, usize);
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum NodeType {
-    Start,
-    End,
-    Path,
-    Wall
+fn get_numeric_of(code: &str) -> u64 {
+    code.chars().take_while(|c| c.is_digit(10)).fold(String::new(), |accum, c| accum + &c.to_string()).parse().unwrap()
 }
 
-fn parse_data_to_graph(data: &str) -> (Matrix, Position, Position) {
-    let matrix = data.lines().map(|line| {
-        line.chars().map(|char_in_line| {
-            match char_in_line {
-                '.' => NodeType::Path,
-                'S' => NodeType::Start,
-                'E' => NodeType::End,
-                _   => NodeType::Wall,
-            }
-        }).collect::<Vec<NodeType>>()
-    }).collect::<Vec<Vec<NodeType>>>();
-
-    let mut graph = Vec::new();
-    let mut start_node = (0,0);
-    let mut end_node = (0,0);
-    for (row, cols) in matrix.iter().enumerate() {
-        let mut r = Vec::new();
-        for (col, &node) in cols.iter().enumerate() {
-            if node == NodeType::Start {
-                start_node = (row, col);
-            }
-
-            if node == NodeType::End {
-                end_node = (row, col);
-            }
-            r.push(matrix[row][col]);
-        }
-        graph.push(r);
-    }
-    
-    (graph, start_node, end_node)
+// There's 1 of these
+fn numeric_keypard() -> Vec<Vec<char>> {
+    vec![
+        vec!['7', '8', '9'],
+        vec!['4', '5', '6'],
+        vec!['1', '2', '3'],
+        vec![' ', '0', 'A']
+    ]
 }
+
+fn get_presses(target: &str, keypad: Vec<Vec<char>>) -> &str {
+    // TODO
+    target
+}
+
+// Two of these, plus the 1 we are typing on
+fn directional_keypad() -> Vec<Vec<char>> {
+    vec![
+        vec![' ', '^', 'A'],
+        vec!['<', 'v', '>']
+    ]
+} 
+
+fn get_codes(data: &str) -> Vec<&str> {
+    data.lines().map(|s| s).collect::<Vec<&str>>()
+}
+
+// You _cannot_ move to the ' ' space, ever.
