@@ -22,14 +22,25 @@ fn part_1(data: &str) {
     for code in codes {
         let presses = get_presses(code, 2, true, cache);
         let complexity = presses as u64 * get_numeric_of(code);
+        println!("CODE {:?} {:?} {:?}", code, presses, complexity);
         complexity_sum += complexity;
     }
     // Input sample shuld be 126384
+    // 291276
     println!("Part 1 {:?}", complexity_sum);
 }
 
 fn part_2(data: &str) {
-    let _foo = data;
+    let mut complexity_sum = 0;
+    let cache = &mut HashMap::new();
+    let codes = get_codes(data);
+    for code in codes {
+        let presses = get_presses(code, 25, true, cache);
+        let complexity = presses as u64 * get_numeric_of(code);
+        println!("CODE {:?} {:?} {:?}", code, presses, complexity);
+        complexity_sum += complexity;
+    }
+    println!("Part 2 {:?}", complexity_sum);
 }
 
 fn get_numeric_of(code: &str) -> u64 {
@@ -65,7 +76,8 @@ impl KeyPad {
                 vec![' ', '0', 'A']
             ],
             position: (3, 2),
-            // Thought: Should I include (9,9) with a Press action? 
+            // Thought: Should I include (9,9) with a Press action? I suppose I don't need to since when from==target we add Press.
+            // You _cannot_ move to the ' ' space, ever.
             neighbors: HashMap::from([
                 ('9', vec![ ('8', Left ), ('6', Down)                             ]),
                 ('8', vec![ ('7', Left ), ('9', Right), ('5', Down)               ]),
@@ -131,7 +143,6 @@ impl KeyPad {
                     let mut new_path = path.clone();
                     new_path.push(Press);
                     paths.push(new_path);
-                    // paths.push(path);
                 }
                 continue;
             }
@@ -219,4 +230,3 @@ fn get_codes(data: &str) -> Vec<&str> {
     data.lines().map(|s| s).collect::<Vec<&str>>()
 }
 
-// You _cannot_ move to the ' ' space, ever.
