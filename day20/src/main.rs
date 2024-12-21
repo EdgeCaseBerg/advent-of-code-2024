@@ -30,9 +30,9 @@ fn part_1(data: &str) {
     };
     let direction: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
     let mut step_counts_by_zone = Vec::new();
-    for row in 0..matrix.len() {
+    for row in &matrix {
         let mut cols = Vec::new();
-        for _ in 0..matrix[row].len() {
+        for _ in 0..row.len() {
             cols.push(i64::MAX);
         }
         step_counts_by_zone.push(cols);
@@ -124,13 +124,13 @@ fn part_2(data: &str) {
     // Ok this sucks. But... let's do the same thing as before, where
     // we build up an initial cost matrix that tells us much we save
     // from moving from point x to poiny y.
-    let (matrix, start_pos, end_pos) = parse_data_to_graph(data);
+    let (matrix, start_pos, _) = parse_data_to_graph(data);
         let in_bounds = |row: usize, col: usize| -> bool {
-        let within_row = 0 <= row && row < matrix.len();
+        let within_row = row < matrix.len();
         if !within_row {
             return false;
         }
-        let within_col = 0 <= col && col < matrix[row].len();
+        let within_col = col < matrix[row].len();
         within_row && within_col
     };
     let direction: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
@@ -139,16 +139,14 @@ fn part_2(data: &str) {
     let mut queue = VecDeque::new();
     let mut visited = HashSet::new();
     let mut the_golden_path = vec![];
-    let mut distance_to_get_to: i64 = 0;
     queue.push_back(start_pos);
-    the_golden_path.push(start_pos.clone());
+    the_golden_path.push(start_pos);
     while let Some(current_pos) = queue.pop_front() {
         if visited.contains(&current_pos) {
             continue;
         }
 
         visited.insert(current_pos);
-        distance_to_get_to += 1;
 
         for dir in &direction {
             let next_row = (current_pos.0 as isize + dir.0) as usize;
@@ -168,10 +166,8 @@ fn part_2(data: &str) {
             queue.push_front((next_row, next_col));
         }
     }
-    println!("{:?}", the_golden_path);
-    let maximal_manhattan_index = 100 + 2; // 10 * 10 distance then +2 for start and end step being replaced.
     let mut valid_cheats = 0;
-    let mut cheats_by_time = HashMap::new();
+    // let mut cheats_by_time = HashMap::new();
     for current_index in 0..the_golden_path.len() {
         let current_node = the_golden_path[current_index];
 
@@ -180,21 +176,15 @@ fn part_2(data: &str) {
 
             let compare_node = the_golden_path[check_against_index];
             let manhatten = (current_node.0 as i64 - compare_node.0 as i64).abs() + (current_node.1 as i64 - compare_node.1 as i64).abs();
-            let time_savings = check_against_index  as i64 - current_index  as i64 - manhatten as i64;
+            let time_savings = check_against_index  as i64 - current_index  as i64 - manhatten;
             if manhatten <= 20 && time_savings >= 100 {
-                cheats_by_time.entry(time_savings).and_modify(|c| *c += 1).or_insert(1);
-                println!("{:?}", (current_node, compare_node, manhatten, time_savings));
+                // cheats_by_time.entry(time_savings).and_modify(|c| *c += 1).or_insert(1);
                 valid_cheats += 1;
             }
         }
     }
     // sample has 285 cheats that save 50ps or more.
-    // 23544 is too low
-    // 11688555 is too high
-    // 10489783 is too high
-    // 1746817 is not correct
-    // 1000697
-    println!("{:?}", cheats_by_time);
+    // println!("{:?}", cheats_by_time);
     println!("{:?}", valid_cheats);
 }
 
