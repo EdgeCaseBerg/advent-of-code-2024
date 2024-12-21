@@ -20,7 +20,7 @@ fn part_1(data: &str) {
     let cache = &mut HashMap::new();
     let codes = get_codes(data);
     for code in codes {
-        let presses = get_presses(code, 3, true, cache);
+        let presses = get_presses(code, 2, true, cache);
         let complexity = presses as u64 * get_numeric_of(code);
         complexity_sum += complexity;
     }
