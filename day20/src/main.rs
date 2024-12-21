@@ -200,8 +200,6 @@ enum NodeType {
     Wall
 }
 
-
-
 fn parse_data_to_graph(data: &str) -> (Matrix, Position, Position) {
     let matrix = data.lines().map(|line| {
         line.chars().map(|char_in_line| {

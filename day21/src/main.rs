@@ -83,6 +83,23 @@ impl KeyPad {
         }
     }
 
+    fn directional_keypad() -> Self {
+        KeyPad {
+            buttons: vec![
+                vec![' ', '^', 'A'],
+                vec!['<', 'v', '>']
+            ],
+            position: (0, 2),
+            neighbors: HashMap::from([
+                ('^', vec![ ('v', Up   ), ('A', Right)               ]),
+                ('A', vec![ ('^', Left ), ('<', Down )               ]),
+                ('>', vec![ ('v', Right), ('A', Up   )               ]),
+                ('v', vec![ ('^', Up,  ), ('<', Left ), ('>', Right) ]),
+                ('<', vec![ ('v', Right)                             ]),
+            ])
+        }
+    }
+
     fn paths(&self) -> HashMap<(char, char), Vec<Vec<Action>>> {
         let pad = self.neighbors.clone().into_iter().collect::<HashMap<char, Vec<(char, Action)>>>();
         let mut paths = HashMap::new();
@@ -134,37 +151,9 @@ impl KeyPad {
 
         paths
     }
-
-    fn directional_keypad() -> Self {
-        KeyPad {
-            buttons: vec![
-                vec![' ', '^', 'A'],
-                vec!['<', 'v', '>']
-            ],
-            position: (0, 2),
-            neighbors: HashMap::from([
-                ('^', vec![ ('v', Up   ), ('A', Right)               ]),
-                ('A', vec![ ('^', Left ), ('<', Down )               ]),
-                ('>', vec![ ('v', Right), ('A', Up   )               ]),
-                ('v', vec![ ('^', Up,  ), ('<', Left ), ('>', Right) ]),
-                ('<', vec![ ('v', Right)                             ]),
-            ])
-        }
-    }
-
-    fn is_valid_move(&self, to_pos: (isize, isize)) -> bool {
-        if self.buttons.len() < to_pos.0 as usize && 0 > to_pos.0 {
-            return false;
-        }
-        if self.buttons[0].len() < to_pos.1 as usize && 0 > to_pos.1 {
-            return false;
-        }
-
-        self.buttons[to_pos.0 as usize][to_pos.1 as usize] == ' '
-    }
 }
 
-fn get_presses(target: &str, keypad: &KeyPad) -> String {
+fn get_presses(target: &str, _keypad: &KeyPad) -> String {
     // TODO
     target.to_string()
 }
