@@ -16,10 +16,10 @@ fn part_1(data: &str) {
     let mut complexity_sum = 0;
     let codes = get_codes(data);
     for code in codes {
-        let presses = get_presses(code, numeric_keypard());
-        let presses = get_presses(presses, directional_keypad());
-        let presses = get_presses(presses, directional_keypad());
-        let presses = get_presses(presses, directional_keypad());
+        let presses = get_presses(code, &KeyPad::numeric_keypard());
+        let presses = get_presses(&presses, &KeyPad::directional_keypad());
+        let presses = get_presses(&presses, &KeyPad::directional_keypad());
+        let presses = get_presses(&presses, &KeyPad::directional_keypad());
         let complexity = presses.len() as u64 * get_numeric_of(code);
         complexity_sum += complexity;
     }
@@ -34,28 +34,41 @@ fn get_numeric_of(code: &str) -> u64 {
     code.chars().take_while(|c| c.is_digit(10)).fold(String::new(), |accum, c| accum + &c.to_string()).parse().unwrap()
 }
 
-// There's 1 of these
-fn numeric_keypard() -> Vec<Vec<char>> {
-    vec![
-        vec!['7', '8', '9'],
-        vec!['4', '5', '6'],
-        vec!['1', '2', '3'],
-        vec![' ', '0', 'A']
-    ]
+struct KeyPad {
+    buttons: Vec<Vec<char>>,
+    position: (usize, usize)
 }
 
-fn get_presses(target: &str, keypad: Vec<Vec<char>>) -> &str {
+impl KeyPad {
+
+    fn numeric_keypard() -> Self {
+        KeyPad {
+            buttons:  vec![
+                vec!['7', '8', '9'],
+                vec!['4', '5', '6'],
+                vec!['1', '2', '3'],
+                vec![' ', '0', 'A']
+            ],
+            position: (3, 2)
+        }
+    }
+
+    fn directional_keypad() -> Self {
+        KeyPad {
+            buttons: vec![
+                vec![' ', '^', 'A'],
+                vec!['<', 'v', '>']
+            ],
+            position: (0, 2)
+        }
+    } 
+}
+
+fn get_presses(target: &str, keypad: &KeyPad) -> String {
     // TODO
-    target
+    target.to_string()
 }
 
-// Two of these, plus the 1 we are typing on
-fn directional_keypad() -> Vec<Vec<char>> {
-    vec![
-        vec![' ', '^', 'A'],
-        vec!['<', 'v', '>']
-    ]
-} 
 
 fn get_codes(data: &str) -> Vec<&str> {
     data.lines().map(|s| s).collect::<Vec<&str>>()
