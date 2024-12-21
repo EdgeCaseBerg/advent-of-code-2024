@@ -3,6 +3,10 @@ pub mod boilerplate;
 use std::collections::VecDeque;
 use std::collections::HashSet;
 use std::collections::HashMap;
+use std::sync::OnceLock;
+
+static NUMERIC_SHORTEST_PATHS: OnceLock<HashMap<(char, char), Vec<Vec<Action>>>> = OnceLock::new();
+static DIRECTIONAL_SHORTEST_PATHS: OnceLock<HashMap<(char, char), Vec<Vec<Action>>>> = OnceLock::new();
 
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
@@ -177,19 +181,28 @@ fn actions_to_direction_string(actions: Vec<Action>) -> String {
     s
 }
 
-fn get_presses(target: &str, indirection_level: u64, is_human: bool, cache: &mut HashMap<(&str, u64, bool), usize>) -> usize {
-    if let Some(cached) = cache.get(&(target, indirection_level, is_human)) {
+fn get_presses(target: &str, indirection_level: u64, is_number_keyboard: bool, cache: &mut HashMap<(&str, u64, bool), usize>) -> usize {
+    if let Some(cached) = cache.get(&(target, indirection_level, is_number_keyboard)) {
         return *cached;
     }
 
-    let keypad = if is_human {
+    let keypad = if is_number_keyboard {
         KeyPad::numeric_keypard()
     } else {
         KeyPad::directional_keypad()
     };
 
     // Honestly should maybe cache this somehow too, it's not like the paths change between each type. Right?
-    let paths = keypad.paths();
+    let paths = if is_number_keyboard {
+        NUMERIC_SHORTEST_PATHS.get_or_init(|| {
+            keypad.paths()
+        })
+    } else {
+        DIRECTIONAL_SHORTEST_PATHS.get_or_init(|| {
+            keypad.paths()
+        })
+    };
+
     let start = keypad.buttons[keypad.position.0][keypad.position.1];
     let mut sequence = vec![];
     sequence.push(start);
