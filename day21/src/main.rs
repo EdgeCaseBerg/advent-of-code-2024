@@ -38,7 +38,7 @@ fn get_numeric_of(code: &str) -> u64 {
 }
 
 type Position = (usize, usize);
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum Action {
     Up,
     Down,
@@ -66,6 +66,7 @@ impl KeyPad {
                 vec![' ', '0', 'A']
             ],
             position: (3, 2),
+            // Thought: Should I include (9,9) with a Press action? 
             neighbors: HashMap::from([
                 ('9', vec![ ('8', Left ), ('6', Down)                             ]),
                 ('8', vec![ ('7', Left ), ('9', Right), ('5', Down)               ]),
@@ -82,8 +83,56 @@ impl KeyPad {
         }
     }
 
-    fn action_of(from: char, to: char) -> Vec<Position> {
-        vec![]
+    fn paths(&self) -> HashMap<(char, char), Vec<Vec<Action>>> {
+        let pad = self.neighbors.clone().into_iter().collect::<HashMap<char, Vec<(char, Action)>>>();
+        let mut paths = HashMap::new();
+
+        for key1 in pad.keys() {
+            for key2 in pad.keys() {
+                paths.insert((*key1, *key2), self.shortest_paths_from(*key1, *key2));
+            }
+        }
+
+        paths
+    }
+
+    fn shortest_paths_from(&self, from: char, to: char) -> Vec<Vec<Action>> {
+        // Just BFS along the neighbors.
+        let mut paths = vec![];
+        let mut queue = VecDeque::from([
+            // position, actions path, visited along this path so far
+            (from, Vec::<Action>::new(), HashSet::<>::new())
+        ]);
+        let mut shortest = usize::MAX;
+        while let Some(current) = queue.pop_front() {
+            let (button, path, mut visited) = current;
+
+            // Hit the target with our last movement, is this a short path?
+            if button == to {
+                if shortest >= path.len() {
+                    shortest = path.len();
+                    // Leaving this here because I feel like I might want to do this. But not sure yet.
+                    // let mut new_path = path.clone();
+                    // new_path.push(Press);
+                    // paths.push(new_path);
+                    paths.push(path);
+                }
+                continue;
+            }
+
+            if visited.contains(&button) {
+                continue;
+            }
+            visited.insert(button);
+
+            for (next_button, action) in self.neighbors.get(&button).unwrap() {
+                let mut new_path = path.clone();
+                new_path.push(*action);
+                queue.push_back((*next_button, new_path, visited.clone()));
+            }
+        }
+
+        paths
     }
 
     fn directional_keypad() -> Self {
