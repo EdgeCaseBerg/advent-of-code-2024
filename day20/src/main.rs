@@ -124,7 +124,7 @@ fn part_2(data: &str) {
     // Ok this sucks. But... let's do the same thing as before, where
     // we build up an initial cost matrix that tells us much we save
     // from moving from point x to poiny y.
-    let (matrix, start_pos, _) = parse_data_to_graph(data);
+    let (matrix, start_pos, end_pos) = parse_data_to_graph(data);
         let in_bounds = |row: usize, col: usize| -> bool {
         let within_row = 0 <= row && row < matrix.len();
         if !within_row {
@@ -134,20 +134,14 @@ fn part_2(data: &str) {
         within_row && within_col
     };
     let direction: [(isize, isize); 4] = [(0, 1), (0, -1), (1, 0), (-1, 0)];
-    let mut step_counts_by_zone = Vec::new();
-    for row in 0..matrix.len() {
-        let mut cols = Vec::new();
-        for _ in 0..matrix[row].len() {
-            cols.push(i64::MAX); // <--- this will probably be a bit screwy.
-        }
-        step_counts_by_zone.push(cols);
-    }
+
 
     let mut queue = VecDeque::new();
     let mut visited = HashSet::new();
+    let mut the_golden_path = vec![];
     let mut distance_to_get_to: i64 = 0;
     queue.push_back(start_pos);
-    step_counts_by_zone[start_pos.0][start_pos.1] = 0;
+    the_golden_path.push(start_pos.clone());
     while let Some(current_pos) = queue.pop_front() {
         if visited.contains(&current_pos) {
             continue;
@@ -167,107 +161,41 @@ fn part_2(data: &str) {
                 continue;
             }
 
-            if !visited.contains(&(next_row, next_col)) {
-                step_counts_by_zone[next_row][next_col] = distance_to_get_to;
+            if visited.contains(&(next_row, next_col)) {
+                continue;
             }
+            the_golden_path.push((next_row, next_col));
             queue.push_front((next_row, next_col));
         }
     }
+    println!("{:?}", the_golden_path);
+    let maximal_manhattan_index = 100 + 2; // 10 * 10 distance then +2 for start and end step being replaced.
+    let mut valid_cheats = 0;
+    let mut cheats_by_time = HashMap::new();
+    for current_index in 0..the_golden_path.len() {
+        let current_node = the_golden_path[current_index];
 
-    println!("{:?}", step_counts_by_zone);
+        let offset = current_index + 1;
+        for check_against_index in offset..the_golden_path.len() {
 
-    // Now, we need to explore the path _again_ (DFS style?), but this time. We need to cheat.
-    // So traverse the path again, but this time, don't skip when we see a wall (that isn't out of bounds)
-    // and instead allow the path to be explored up to 20 times. If the path we are cheating to
-    // is a valid place to end up (even less than 20, then add it as a potential cheat)
-    let mut cheats_by_position: HashMap<(Position, Position), i64> = HashMap::new() ;
-    let mut cheats_by_position_and_time: HashMap<i64, i64> = HashMap::new(); // for debugging.
-    let mut queue = VecDeque::new();
-    queue.push_back(start_pos);
-    let mut visited = HashSet::new();
-    while let Some(current_pos) = queue.pop_back() {
-        if visited.contains(&current_pos) {
-            continue;
-        }
-        visited.insert(current_pos);
-        let (row, col) = current_pos;
-
-        let steps_to_position = step_counts_by_zone[row][col];
-        for dir in &direction {
-            let next_row = (current_pos.0 as isize + dir.0) as usize;
-            let next_col = (current_pos.1 as isize + dir.1) as usize;
-            if !in_bounds(next_row, next_col) {
-                continue;
+            let compare_node = the_golden_path[check_against_index];
+            let manhatten = (current_node.0 as i64 - compare_node.0 as i64).abs() + (current_node.1 as i64 - compare_node.1 as i64).abs();
+            let time_savings = check_against_index  as i64 - current_index  as i64 - manhatten as i64;
+            if manhatten <= 20 && time_savings >= 100 {
+                cheats_by_time.entry(time_savings).and_modify(|c| *c += 1).or_insert(1);
+                println!("{:?}", (current_node, compare_node, manhatten, time_savings));
+                valid_cheats += 1;
             }
-
-            if matrix[next_row][next_col] == NodeType::Wall {
-                // YOU CAN CHEAT TO EVERYTTHING WITHIN 20 MANHATTANS AWAY
-                // SO ITERATE ACROSS ALL OF THOSE TO FIGURE OUT WHAT ONE 
-                // CAN CHEAT TO
-                for offset_r in -20..=20i64 {
-                    for offset_c in -20..=20i64 {
-                        let manhatten = offset_r.abs() + offset_c.abs();
-                        if manhatten > 20 {
-                            continue;
-                        }
-
-                        let next_row = (row as isize + offset_r as isize) as usize;
-                        let next_col = (col as isize + offset_c as isize) as usize;
-                        if !in_bounds(next_row, next_col) || matrix[next_row][next_col] == NodeType::Wall {
-                            continue
-                        }
-
-                        let is_same_cheat = cheats_by_position.contains_key(&((row,col), (next_row, next_col)));
-                        if is_same_cheat {
-                            if next_row == 7 && next_col == 3 {
-                                println!("{:?}", (row, col, next_row, next_col));
-                            }
-                            continue;
-                        }
-
-                        if step_counts_by_zone[next_row][next_col] < steps_to_position {
-                            continue; // do not go backwards on the path
-                        }
-
-                        let time_saved_by_cheat = step_counts_by_zone[next_row][next_col];
-                        let diff_in_steps = (time_saved_by_cheat - manhatten).abs();
-
-                        cheats_by_position.entry(((row,col), (next_row, next_col))).and_modify(|c| *c += 1).or_insert(1);
-                        cheats_by_position_and_time.entry(diff_in_steps).and_modify(|c| *c += 1).or_insert(1);
-                    }
-                }
-                continue;
-            }
-            queue.push_front((next_row, next_col));
         }
     }
-
-    // println!("{:?}", cheats_by_position);
-    // println!("{:?}", cheats_by_position_and_time);
-
-    let mut sample_answer = 0;
-    for (cost_savings, number) in &cheats_by_position_and_time {
-        println!("{:?} -> {:?} ", number, cost_savings);
-        if *cost_savings >= 50 {
-            sample_answer += number
-        }
-    }
-
-    let mut answer_two = 0;
-    for (cost_savings, number) in &cheats_by_position_and_time {
-        // println!("{:?} -> {:?} ", number, cost_savings);
-        if *cost_savings >= 100 {
-            answer_two += number
-        }
-    }
-
     // sample has 285 cheats that save 50ps or more.
     // 23544 is too low
     // 11688555 is too high
-    // 10489783 is too high 
+    // 10489783 is too high
     // 1746817 is not correct
-    println!("{:?}", sample_answer);
-    println!("{:?}", answer_two); // Just confirming it is the same
+    // 1000697
+    println!("{:?}", cheats_by_time);
+    println!("{:?}", valid_cheats);
 }
 
 
