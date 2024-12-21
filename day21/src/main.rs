@@ -192,7 +192,6 @@ fn get_presses(target: &str, indirection_level: u64, is_number_keyboard: bool, c
         KeyPad::directional_keypad()
     };
 
-    // Honestly should maybe cache this somehow too, it's not like the paths change between each type. Right?
     let paths = if is_number_keyboard {
         NUMERIC_SHORTEST_PATHS.get_or_init(|| {
             keypad.paths()
