@@ -5,8 +5,9 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-static NUMERIC_SHORTEST_PATHS: OnceLock<HashMap<(char, char), Vec<Vec<Action>>>> = OnceLock::new();
-static DIRECTIONAL_SHORTEST_PATHS: OnceLock<HashMap<(char, char), Vec<Vec<Action>>>> = OnceLock::new();
+type ActionsListByFromAndTo = HashMap<(char, char), Vec<Vec<Action>>>;
+static NUMERIC_SHORTEST_PATHS: OnceLock<ActionsListByFromAndTo> = OnceLock::new();
+static DIRECTIONAL_SHORTEST_PATHS: OnceLock<ActionsListByFromAndTo> = OnceLock::new();
 
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
@@ -26,7 +27,7 @@ fn part_1(data: &str, cache: &mut HashMap<(String, u64, bool), usize>) {
     for code in codes {
         let presses = get_presses(code, 2, true, cache);
         let complexity = presses as u64 * get_numeric_of(code);
-        println!("CODE {:?} {:?} {:?}", code, presses, complexity);
+        // println!("CODE {:?} {:?} {:?}", code, presses, complexity);
         complexity_sum += complexity;
     }
     // Input sample shuld be 126384
@@ -40,14 +41,15 @@ fn part_2(data: &str, cache: &mut HashMap<(String, u64, bool), usize>) {
     for code in codes {
         let presses = get_presses(code, 25, true, cache);
         let complexity = presses as u64 * get_numeric_of(code);
-        println!("CODE {:?} {:?} {:?}", code, presses, complexity);
+        // println!("CODE {:?} {:?} {:?}", code, presses, complexity);
         complexity_sum += complexity;
     }
+    println!("Postcached data {:?}", cache.len());
     println!("Part 2 {:?}", complexity_sum);
 }
 
 fn get_numeric_of(code: &str) -> u64 {
-    code.chars().take_while(|c| c.is_digit(10)).fold(String::new(), |accum, c| accum + &c.to_string()).parse().unwrap()
+    code.chars().take_while(|c| c.is_ascii_digit()).fold(String::new(), |accum, c| accum + &c.to_string()).parse().unwrap()
 }
 
 type Position = (usize, usize);
@@ -239,6 +241,6 @@ fn get_presses(target: &str, indirection_level: u64, is_number_keyboard: bool, c
 
 
 fn get_codes(data: &str) -> Vec<&str> {
-    data.lines().map(|s| s).collect::<Vec<&str>>()
+    data.lines().collect::<Vec<&str>>()
 }
 
