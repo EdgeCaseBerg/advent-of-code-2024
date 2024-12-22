@@ -15,13 +15,13 @@ fn main() {
         return;
     }
     let data = raw_data.unwrap();
-    part_1(&data);
-    part_2(&data);
+    let cache = &mut HashMap::new();
+    part_1(&data, cache);
+    part_2(&data, cache);
 }
 
-fn part_1(data: &str) {
+fn part_1(data: &str, cache: &mut HashMap<(String, u64, bool), usize>) {
     let mut complexity_sum = 0;
-    let cache = &mut HashMap::new();
     let codes = get_codes(data);
     for code in codes {
         let presses = get_presses(code, 2, true, cache);
@@ -34,9 +34,9 @@ fn part_1(data: &str) {
     println!("Part 1 {:?}", complexity_sum);
 }
 
-fn part_2(data: &str) {
+fn part_2(data: &str, cache: &mut HashMap<(String, u64, bool), usize>) {
+    println!("{:?}", cache.len());
     let mut complexity_sum = 0;
-    let cache = &mut HashMap::new();
     let codes = get_codes(data);
     for code in codes {
         let presses = get_presses(code, 25, true, cache);
@@ -181,8 +181,8 @@ fn actions_to_direction_string(actions: Vec<Action>) -> String {
     s
 }
 
-fn get_presses(target: &str, indirection_level: u64, is_number_keyboard: bool, cache: &mut HashMap<(&str, u64, bool), usize>) -> usize {
-    if let Some(cached) = cache.get(&(target, indirection_level, is_number_keyboard)) {
+fn get_presses(target: &str, indirection_level: u64, is_number_keyboard: bool, cache: &mut HashMap<(String, u64, bool), usize>) -> usize {
+    if let Some(cached) = cache.get(&(target.to_string(), indirection_level, is_number_keyboard)) {
         return *cached;
     }
 
@@ -234,6 +234,7 @@ fn get_presses(target: &str, indirection_level: u64, is_number_keyboard: bool, c
         total_button_presses += presses;
         from = to;
     }
+    cache.insert((target.to_string(), indirection_level, is_number_keyboard), total_button_presses);
     total_button_presses
 }
 
