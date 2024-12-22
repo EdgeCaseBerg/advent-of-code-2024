@@ -30,12 +30,11 @@ fn part_1(data: &str, cache: &mut HashMap<(String, u64, bool), usize>) {
         complexity_sum += complexity;
     }
     // Input sample shuld be 126384
-    // 291276
     println!("Part 1 {:?}", complexity_sum);
 }
 
 fn part_2(data: &str, cache: &mut HashMap<(String, u64, bool), usize>) {
-    println!("{:?}", cache.len());
+    println!("Precached data {:?}", cache.len());
     let mut complexity_sum = 0;
     let codes = get_codes(data);
     for code in codes {
