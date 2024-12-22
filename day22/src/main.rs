@@ -49,7 +49,7 @@ fn part_2(data: &str) {
 
         let mut seq_already_seen = HashSet::new();
         let mut four_at_a_time = differences.windows(4);
-        let mut idx = 4;
+        let mut idx = 4; // This is not 3 because the price vector is off by one since there is no price for the starting point
         while let Some(window) = four_at_a_time.next() {
             let seq_as_str: Vec<char> = window.iter().map(|&diff| diff.to_string() + "").collect::<String>().chars().collect();
 
@@ -63,8 +63,6 @@ fn part_2(data: &str) {
             }
             seq_already_seen.insert(seq_as_str.clone());
 
-            // println!("{:?}", (&initial_buyer_number, &seq_as_str, &prices[idx]) );
-
             buyer_diff_to_price.insert((initial_buyer_number, seq_as_str), prices[idx]);
             idx += 1;
         }
@@ -72,11 +70,8 @@ fn part_2(data: &str) {
         buyer_diffs.push(difference_as_big_string);
     }
 
-    // println!("Is this all I need? {:?}", buyer_diff_to_price);
-
-    /* We have a difference string per buyer, we have a trie to check to see if the sequence exists in that string
-     * and we have a way to map from that sequence back to how many bananas we get. So all that remains is to loop
-     * over every sequence (skip any already checked) and fin the one that gets us the most bananas. 
+    /* We have a list of all possible sequences for all buyers now.
+     * So, just check to see what the price of each is against our mapping table to look up the price
      */
     let mut best_price = 0;
     for seq in &sequence_to_check {
@@ -88,10 +83,8 @@ fn part_2(data: &str) {
             };
         }
         if best_price < price_for_seq {
-            // println!("{:?}", seq);
             best_price = price_for_seq;
         }
-        // println!("Score for seq {:?}", price_for_seq );
     }
     println!("Best {:?}", best_price);
 
