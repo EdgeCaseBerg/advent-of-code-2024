@@ -35,12 +35,39 @@ impl<T: Eq + Hash + Clone> GenericTrie<T> {
         }
     }
 
-    pub fn insert(&mut self, design: &[T]) {
+    pub fn insert(&mut self, list: &[T]) {
         let mut node = &mut self.root;
-        for towel_stripe in design {
-            node = node.children.entry(towel_stripe.clone()).or_default()
+        for item in list {
+            node = node.children.entry(item.clone()).or_default()
         }
         node.ends_a_word = true;
+    }
+
+    pub fn count_combos(&self, target: &[T]) -> u64 {
+        let len = target.len() + 1;
+        let mut combos_for_index = vec![0u64; len];
+        combos_for_index[0] = 1;
+        for i in 0..target.len() {
+            if combos_for_index[i] == 0 {
+                continue;
+            }
+
+            let mut node = &self.root;
+            let mut j = i;
+            while j < target.len() {
+                if let Some(next) = node.children.get(&target[j]) {
+                    node = next;
+                    if node.ends_a_word {
+                        combos_for_index[j + 1] += combos_for_index[i];
+                    }
+                    j += 1;
+                } else {   
+                    break;
+                }
+            }
+        }
+
+        combos_for_index[target.len()]
     }
 }
 
