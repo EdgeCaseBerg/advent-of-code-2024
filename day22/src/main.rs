@@ -1,6 +1,6 @@
 pub mod boilerplate;
 
-use std::collections::HashMap;
+use std::collections::{ HashMap, HashSet };
 
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
@@ -27,20 +27,80 @@ fn part_2(data: &str) {
     let initial_buyer_numbers = parse_input_file(data);
     let mut buyer_to_prices = HashMap::new();
     for initial_buyer_number in &initial_buyer_numbers {
-        let prices = compute_prices(*initial_buyer_number, 10);
+        let prices = compute_prices(*initial_buyer_number, 2000);
         buyer_to_prices.insert(initial_buyer_number, prices);
     }
     
+    let mut buyer_diff_to_price = HashMap::new();
+    let mut buyer_diffs = vec![];
+    let mut sequence_to_check = HashSet::new();
+
     for initial_buyer_number in &initial_buyer_numbers {
+        /* The monkey will sell once it has seen the FULL four difference sequence we provide
+         * it. It will not sell if it doesn't see the whole sequence. The number of bananas we 
+         * get is the price at the 4th sequence change.
+         */
         let prices = buyer_to_prices.get(&initial_buyer_number).unwrap();
         let mut two_at_a_time = prices.windows(2);
         let mut differences = vec![];
         while let Some(window) = two_at_a_time.next() {
             differences.push(window[1] - window[0]);
         }
-        println!("{:?} \n{:?}\n{:?}", initial_buyer_number, prices, differences);
+
+        let mut seq_already_seen = HashSet::new();
+        let mut four_at_a_time = differences.windows(4);
+        let mut idx = 4;
+        while let Some(window) = four_at_a_time.next() {
+            let seq_as_str: Vec<char> = window.iter().map(|&diff| diff.to_string() + "").collect::<String>().chars().collect();
+
+            // Accumulate every sequence across every buyer
+            sequence_to_check.insert(seq_as_str.clone());
+
+            // A monkey sells the first time it sees a sequence, so there's no reason to keep track of it later in the list
+            if seq_already_seen.contains(&seq_as_str) {
+                idx += 1;
+                continue;
+            }
+            seq_already_seen.insert(seq_as_str.clone());
+
+            // println!("{:?}", (&initial_buyer_number, &seq_as_str, &prices[idx]) );
+
+            buyer_diff_to_price.insert((initial_buyer_number, seq_as_str), prices[idx]);
+            idx += 1;
+        }
+        let difference_as_big_string: String = differences.iter().map(|&diff| diff.to_string() + "").collect();
+        buyer_diffs.push(difference_as_big_string);
     }
-    println!("Part 2 {:?}", 0);
+
+    // println!("Is this all I need? {:?}", buyer_diff_to_price);
+
+    /* We have a difference string per buyer, we have a trie to check to see if the sequence exists in that string
+     * and we have a way to map from that sequence back to how many bananas we get. So all that remains is to loop
+     * over every sequence (skip any already checked) and fin the one that gets us the most bananas. 
+     */
+    let mut best_price = 0;
+    for seq in &sequence_to_check {
+        let mut price_for_seq = 0;
+        for initial_buyer_number in &initial_buyer_numbers {
+            price_for_seq += match buyer_diff_to_price.get(&(initial_buyer_number, seq.to_vec())) {
+                None => 0,
+                Some(price) => *price
+            };
+        }
+        if best_price < price_for_seq {
+            // println!("{:?}", seq);
+            best_price = price_for_seq;
+        }
+        // println!("Score for seq {:?}", price_for_seq );
+    }
+    println!("Best {:?}", best_price);
+
+
+    // It's not 36 :P so it's not just the maximum one digit place across all four monkeys.
+    println!("Part 2 {:?}", buyer_diff_to_price.get(&(&1, vec!['-', '2', '1', '-', '1', '3'])));
+    println!("Part 2 {:?}", buyer_diff_to_price.get(&(&2, vec!['-', '2', '1', '-', '1', '3'])));
+    println!("Part 2 {:?}", buyer_diff_to_price.get(&(&3, vec!['-', '2', '1', '-', '1', '3'])));
+    println!("Part 2 {:?}", buyer_diff_to_price.get(&(&2024, vec!['-', '2', '1', '-', '1', '3'])));
 }
 
 fn parse_input_file(data: &str) -> Vec<u64> {
