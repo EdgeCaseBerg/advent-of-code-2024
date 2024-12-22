@@ -1,5 +1,7 @@
 pub mod boilerplate;
 
+use std::collections::HashMap;
+
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
     if let Err(ref problem) = raw_data {
@@ -22,7 +24,22 @@ fn part_1(data: &str) {
 }
 
 fn part_2(data: &str) {
-    let _foo = data;
+    let initial_buyer_numbers = parse_input_file(data);
+    let mut buyer_to_prices = HashMap::new();
+    for initial_buyer_number in &initial_buyer_numbers {
+        let prices = compute_prices(*initial_buyer_number, 10);
+        buyer_to_prices.insert(initial_buyer_number, prices);
+    }
+    
+    for initial_buyer_number in &initial_buyer_numbers {
+        let prices = buyer_to_prices.get(&initial_buyer_number).unwrap();
+        let mut two_at_a_time = prices.windows(2);
+        let mut differences = vec![];
+        while let Some(window) = two_at_a_time.next() {
+            differences.push(window[1] - window[0]);
+        }
+        println!("{:?} \n{:?}\n{:?}", initial_buyer_number, prices, differences);
+    }
     println!("Part 2 {:?}", 0);
 }
 
@@ -41,6 +58,20 @@ fn compute_secret_number(initial_secret: u64, iterations: u64) -> u64 {
         secret = prune(mix(secret, secret * 2048));
     }
     secret
+}
+
+fn compute_prices(initial_secret: u64, iterations: u64) -> Vec<i64> {
+    // Feels like there ought to be a nicer way of doing this, maybe I should just us i64's everywhere. anyway.
+    let mut buyers_selling_prices = Vec::from([((initial_secret % 10) as i64).try_into().unwrap()]);
+    let mut secret = initial_secret;
+    for _ in 0..iterations {
+        secret = prune(mix(secret, secret * 64));
+        secret = prune(mix(secret, secret / 32));
+        secret = prune(mix(secret, secret * 2048));
+        let price: i64 = ((secret % 10) as i64).try_into().unwrap();
+        buyers_selling_prices.push(price);
+    }
+    buyers_selling_prices
 }
 
 fn mix(secret: u64, other: u64) -> u64 {
