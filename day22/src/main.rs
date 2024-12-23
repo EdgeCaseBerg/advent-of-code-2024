@@ -10,7 +10,9 @@ fn main() {
     }
     let data = raw_data.unwrap();
     part_1(&data);
-    part_2(&data);
+    part_2_opt(&data);
+    // part_2(&data);
+
 }
 
 fn part_1(data: &str) {
@@ -18,7 +20,6 @@ fn part_1(data: &str) {
     let mut sum_of_2000th_numbers = 0;
     for initial_buyer_number in &initial_buyer_numbers {
         sum_of_2000th_numbers += compute_secret_number(*initial_buyer_number, 2000);
-        println!("Buyer initial: {:?} 2000: {:?}", initial_buyer_number, compute_secret_number(*initial_buyer_number, 2000));
     }
     println!("Part 1 {:?}", sum_of_2000th_numbers);
 }
@@ -32,7 +33,6 @@ fn part_2(data: &str) {
     }
     
     let mut buyer_diff_to_price = HashMap::new();
-    let mut buyer_diffs = vec![];
     let mut sequence_to_check = HashSet::new();
 
     for initial_buyer_number in &initial_buyer_numbers {
@@ -66,8 +66,6 @@ fn part_2(data: &str) {
             buyer_diff_to_price.insert((initial_buyer_number, seq_as_str), prices[idx]);
             idx += 1;
         }
-        let difference_as_big_string: String = differences.iter().map(|&diff| diff.to_string() + "").collect();
-        buyer_diffs.push(difference_as_big_string);
     }
 
     /* We have a list of all possible sequences for all buyers now.
@@ -94,6 +92,79 @@ fn part_2(data: &str) {
     println!("Part 2 {:?}", buyer_diff_to_price.get(&(&2, vec!['-', '2', '1', '-', '1', '3'])));
     println!("Part 2 {:?}", buyer_diff_to_price.get(&(&3, vec!['-', '2', '1', '-', '1', '3'])));
     println!("Part 2 {:?}", buyer_diff_to_price.get(&(&2024, vec!['-', '2', '1', '-', '1', '3'])));
+}
+
+
+
+fn get_secret(secret: u64, i: i64, secret_cache: &mut HashMap<(u64, i64), u64>) -> u64 {
+    match secret_cache.get(&(secret, i)) {
+        Some(cached) => *cached,
+        None => {
+            let initial = secret;
+            let previous = match i {
+                0 => secret,
+                _ => get_secret(secret, i - 1, secret_cache)
+            };
+            let mut secret = prune(mix(previous, previous * 64));
+            secret = prune(mix(secret, secret / 32));
+            secret = prune(mix(secret, secret * 2048));
+            secret_cache.insert((initial, i), secret);
+            secret
+        }
+    }
+}
+
+fn part_2_opt(data: &str) {
+    let initial_buyer_numbers = parse_input_file(data);
+    let mut secret_cache: HashMap<(u64, i64), u64> = HashMap::new();
+
+    let mut seq_to_prices: HashMap<(i64, i64, i64, i64), HashMap<u64, u64>> = HashMap::new();
+    for i in 4..2000 {
+        for initial_buyer_number in &initial_buyer_numbers {
+            let initial_buyer_number = *initial_buyer_number;
+            let secret = get_secret(initial_buyer_number, i, &mut secret_cache);
+            let current_price = secret % 10;
+            let previous_price = get_secret(initial_buyer_number, i - 1, &mut secret_cache) % 10;
+            let prev_prev_price = get_secret(initial_buyer_number, i - 2, &mut secret_cache) % 10;
+            let prev_prev_prev_price = get_secret(initial_buyer_number, i - 3, &mut secret_cache) % 10;
+            let prev_prev_prev_prev_price = get_secret(initial_buyer_number, i - 4, &mut secret_cache) % 10;
+            let sequence = (
+                prev_prev_prev_price as i64 - prev_prev_prev_prev_price as i64,
+                prev_prev_price as i64 - prev_prev_prev_price as i64,
+                previous_price as i64 - prev_prev_price as i64,
+                current_price as i64 - previous_price as i64
+            );
+
+            // If this seller already has this sequence priced, then do not add it because
+            // this means that the sequence came in a previous position, so that would have
+            // already been taken, you only get the first price.
+
+            let map_of_buyer_to_sell_price = seq_to_prices.entry(sequence).or_insert(HashMap::new());
+            if map_of_buyer_to_sell_price.contains_key(&initial_buyer_number) {
+                continue;
+            }
+            map_of_buyer_to_sell_price.entry(initial_buyer_number).insert_entry(current_price);
+
+        }
+    }
+    
+    // println!("{:?}", secret_cache);
+    // println!("Finding best... {:?}", seq_to_prices);
+    /* We have a list of all possible sequences for all buyers now.
+     * So, just check to see what the price of each is against our mapping table to look up the price
+     */
+    let mut best_price = 0;
+    for (_, sellers_map) in seq_to_prices {
+        let mut price_for_seq = 0;
+        for (_, price) in sellers_map {
+            price_for_seq += price;
+        }
+        if best_price < price_for_seq {
+            best_price = price_for_seq;
+        }
+    }
+    println!("Best Opt  {:?}", best_price);
+
 }
 
 fn parse_input_file(data: &str) -> Vec<u64> {
@@ -134,3 +205,4 @@ fn mix(secret: u64, other: u64) -> u64 {
 fn prune(secret: u64) -> u64 {
     secret % 16777216
 }
+
