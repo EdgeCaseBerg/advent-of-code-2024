@@ -68,57 +68,71 @@ fn part_2(data: &str) {
     }
 
     // Observation. Every Set has the same size! Is this information useful in some way?
-    // 
     
     // let mut largest = HashSet::new();
+    let mut potential_passwords = HashSet::new();
     for (&pc1, p1_connected_to) in &connected_map {
         // Part 2 doesn't say this implicitly, but can I assume that t must be in the input?
-        if !pc1.starts_with("t") {
-            continue;
-        }
+        // NO! If you do that then you might miss out on some connections!
+        // if !pc1.starts_with("t") {
+        //     continue;
+        // }
 
-        let mut connected = vec![];
-        for pc in p1_connected_to {
-            let one_hop = connected_map.get(pc).unwrap();
-            println!("oo{:?}", {p1_connected_to.difference(one_hop)});
-            let mut key_and_set = one_hop.clone();
-            key_and_set.insert(pc.clone());
-            connected.push(key_and_set);
-        }
+        let mut all_connected = HashSet::from([pc1]); // PC 1 is connected to itself trivialy
+        all_connected.insert(p1_connected_to.iter().next().unwrap()); // Seed the first node we're connected to.
 
-        // We have a list of the other connections now.
-        let mut best_connected_so_far = vec![];
-        for pc in p1_connected_to {
-            let mut remaining = vec![];
-            for connection_set in &connected {
-                if connection_set.contains(pc) {
-                    remaining.push(connection_set.clone());
+        // We need to find a CLIQUE!
+        for p2 in p1_connected_to.iter().skip(1) {
+            let p2_connected_to = connected_map.get(p2).unwrap(); // PC 2 is of course connected to P1
+            // But are all the other nodes adjacent too??
+            // A Clique is only a clique if everyone is best buds with everyone else
+            let mut held_up_for_all = true;
+            for connected in &all_connected {
+                if p2_connected_to.contains(connected.clone()) {
+                    // don't insert yet. it need to be adjacent to ALL of them!
+                } else {
+                    held_up_for_all = false;
+                    break; // Stop trying to make fetch happen, you can't be friends with her.
                 }
             }
-            if best_connected_so_far.len() < remaining.len() {
-                best_connected_so_far = remaining.clone();
+            // If fetch happened, let the girl become mean.
+            if held_up_for_all {
+                all_connected.insert(p2);
             }
-            connected = remaining;
+            
         }
-        println!("c{:?}", connected);
-        println!("b{:?}", best_connected_so_far);
-
-        // if largest.len() < best_connected_so_far.len() {
-        //     let mut x = best_connected_so_far[0];
-        //     for i in 1..best_connected_so_far.len() {
-        //         x = x.intersection(&best_connected_so_far[i]).collect()
-        //     }
-        //     largest = x;
-        // }
+        let mut password = Vec::new();
+        for pc in all_connected {
+            password.push(pc);
+        }
+        password.sort();
+        potential_passwords.insert(password);
     }
 
-    // "co": {"ta", "ka", "de", "tc"},
     // "ta": {"ka", "co", "de", "kh"}
+    // "co": {"ta", "ka", "de", "tc"},
     // "ka": {"ta", "co", "tb", "de"}
     // "de": {"ta", "cg", "co", "ka"}
     // "kh": {"ub", "ta", "tc", "qp"}
 
-    println!("{:?}", connected_map);
+    let mut longest_password = Vec::new();
+    for p in &potential_passwords {
+        if p.len() > longest_password.len() {
+            longest_password = p.to_vec();
+        }
+    }
+
+    // I can't get join to work? the following trait bounds were not satisfied: `[&String]: Join<_>`
+    let mut the_password = String::new();
+    let mut not_first = false;
+    for pc_name in longest_password.iter() {
+        if not_first {
+            the_password.push_str(",");
+        }
+        the_password.push_str(*pc_name);
+        not_first = true;
+    }
+    println!("LAN Party password is {:?}", the_password);
 }
 
 #[derive(Debug)]
