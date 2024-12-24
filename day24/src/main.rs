@@ -93,15 +93,6 @@ fn parse_data_for_unbound_gates(data: &str) -> VecDeque<UnboundGate> {
 }
 
 fn bools_to_decimal(least_to_most: &Vec<bool>) -> i64 {
-    let mut s = String::new();
-    for bit in least_to_most {
-        let bit_value =  match bit {
-            true => "1",
-            false => "0"
-        };
-        s.insert_str(0, bit_value);
-    }
-    println!("{:?}", s);
     let mut value = 0;
     for (i, &bit) in least_to_most.iter().enumerate() {
         if bit {
@@ -150,33 +141,6 @@ struct Gate {
 }
 
 impl Gate {
-    fn and(in1: bool, in2: bool, to: String) -> Self {
-        Gate {
-            gate_type: GateType::AND,
-            in1,
-            in2,
-            output_name: to
-        }
-    }
-
-    fn or(in1: bool, in2: bool, to: String) -> Self {
-        Gate {
-            gate_type: GateType::OR,
-            in1,
-            in2,
-            output_name: to
-        }
-    }
-
-    fn xor(in1: bool, in2: bool, to: String) -> Self {
-        Gate {
-            gate_type: GateType::XOR,
-            in1,
-            in2,
-            output_name: to
-        }
-    }
-
     fn output(&self) -> bool {
         match self.gate_type {
             GateType::AND => self.in1 && self.in2,
