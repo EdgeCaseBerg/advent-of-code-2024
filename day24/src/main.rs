@@ -1,6 +1,7 @@
 pub mod boilerplate;
 
 use std::collections::HashMap;
+use std::collections::VecDeque;
 
 fn main() {
     let raw_data = crate::boilerplate::get_sample_if_no_input();
@@ -14,11 +15,41 @@ fn main() {
 }
 
 fn part_1(data: &str) {
-    let variables = parse_data_for_initial_variables(data);
-    let gates_to_bind = parse_data_for_unbound_gates(data);
+    let mut variables = parse_data_for_initial_variables(data);
+    let mut gates_to_bind = parse_data_for_unbound_gates(data);
+    let mut bound_gates = vec![];
+
+    loop {
+        if gates_to_bind.is_empty() {
+            break;
+        }
+
+        let gate_to_bind = gates_to_bind.pop_front().unwrap();
+        match gate_to_bind.bind_with(&variables, &gate_to_bind.output_name) {
+            None => {
+               // Not enough info yet!
+               gates_to_bind.push_back(gate_to_bind);
+            }, 
+            Some(bound_gate) => {
+                variables.insert(bound_gate.output_name.clone(), bound_gate.output());
+                bound_gates.push(bound_gate);
+            }
+        }
+    }
 
     println!("{:?}", variables);
     println!("{:?}", gates_to_bind);
+    println!("{:?}", bound_gates);
+
+    bound_gates.sort_by_key(|gate| gate.output_name.clone());
+
+    let bits_from_least_to_most_significant: Vec<bool> = bound_gates.iter()
+        .filter(|gate| gate.output_name.starts_with("z"))
+        .map(|gate| gate.output())
+        .collect();
+
+    // 764 is too low
+    println!("{:?}", bools_to_decimal(&bits_from_least_to_most_significant));
 }
 
 fn part_2(data: &str) {
@@ -34,7 +65,7 @@ fn parse_data_for_initial_variables(data: &str) -> HashMap<String, bool> {
     }).collect()
 } 
 
-fn parse_data_for_unbound_gates(data: &str) -> Vec<UnboundGate> {
+fn parse_data_for_unbound_gates(data: &str) -> VecDeque<UnboundGate> {
     data.lines().skip_while(|line| !line.is_empty()).skip(1).map(|line| {
         let mut parts  = line.split(" ");
         let left_name  = parts.next().unwrap();
@@ -54,6 +85,19 @@ fn parse_data_for_unbound_gates(data: &str) -> Vec<UnboundGate> {
     }).collect()
 }
 
+fn bools_to_decimal(least_to_most: &Vec<bool>) -> i64 {
+    let mut value = 0;
+    for bit in least_to_most {
+        let bit_value = match bit {
+            true => 1,
+            false => 0
+        };
+        value <<= 1;
+        value |= bit_value;
+    }
+    value
+}
+
 #[derive(Debug, Clone, Copy)]
 enum GateType {
     AND,
@@ -69,14 +113,14 @@ struct UnboundGate {
 }
 
 impl UnboundGate {
-    fn bind_with(&self, known_values: HashMap<String, bool>, to: String) -> Option<Gate> {
+    fn bind_with(&self, known_values: &HashMap<String, bool>, to: &String) -> Option<Gate> {
         let two_inputs_bound = !self.variables.is_empty() && self.variables.iter().all(|variable| known_values.contains_key(variable));
         if two_inputs_bound {
             let g = Gate {
                 gate_type: self.gate_type,
                 in1: *known_values.get(&self.variables[0]).unwrap(),
                 in2: *known_values.get(&self.variables[1]).unwrap(),
-                output_name: to
+                output_name: to.clone()
             };
             Some(g)
         } else {
@@ -84,7 +128,7 @@ impl UnboundGate {
         }
     }
 }
-
+#[derive(Debug, Clone)]
 struct Gate {
     gate_type: GateType,
     in1: bool,
