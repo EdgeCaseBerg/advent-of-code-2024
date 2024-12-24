@@ -43,12 +43,19 @@ fn part_1(data: &str) {
 
     bound_gates.sort_by_key(|gate| gate.output_name.clone());
 
+    println!("BG\n{:?}", bound_gates);
+
     let bits_from_least_to_most_significant: Vec<bool> = bound_gates.iter()
         .filter(|gate| gate.output_name.starts_with("z"))
-        .map(|gate| gate.output())
+        .map(|gate| {
+            // println!("{:?}", (&gate.output_name, gate.output()));
+            gate.output()
+        })
         .collect();
 
     // 764 is too low
+    // 2024 is too low
+    // Oh I'm a dumb dumb and was submitting the sample data. Wups!
     println!("{:?}", bools_to_decimal(&bits_from_least_to_most_significant));
 }
 
@@ -86,14 +93,20 @@ fn parse_data_for_unbound_gates(data: &str) -> VecDeque<UnboundGate> {
 }
 
 fn bools_to_decimal(least_to_most: &Vec<bool>) -> i64 {
-    let mut value = 0;
+    let mut s = String::new();
     for bit in least_to_most {
-        let bit_value = match bit {
-            true => 1,
-            false => 0
+        let bit_value =  match bit {
+            true => "1",
+            false => "0"
         };
-        value <<= 1;
-        value |= bit_value;
+        s.insert_str(0, bit_value);
+    }
+    println!("{:?}", s);
+    let mut value = 0;
+    for (i, &bit) in least_to_most.iter().enumerate() {
+        if bit {
+            value |= 1 << i;  // Set the i-th bit if bit is true
+        }
     }
     value
 }
