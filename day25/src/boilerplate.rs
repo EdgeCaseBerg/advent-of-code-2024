@@ -14,7 +14,7 @@ fn get_filename_from_args() -> Option<String> {
 
 pub fn get_sample_if_no_input() -> Result<String, std::io::Error> {
     match get_filename_from_args() {
-        None => fs::read_to_string("input.txt"),
+        None => fs::read_to_string("sample.txt"),
         Some(filename) => fs::read_to_string(filename)
     }
 }
