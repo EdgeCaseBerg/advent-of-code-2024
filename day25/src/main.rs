@@ -13,7 +13,25 @@ fn main() {
 
 fn part_1(data: &str) {
     let (keys, locks) = parse_data(data);
-    println!("{:?}", (keys, locks));
+
+    let mut non_overlapping_pairs = vec![];
+    for key in &keys {
+        for lock in &locks {
+            let mut has_overlap = false;
+            for i in 0..5 {
+                let sum = key[i] + lock[i];
+                if sum > 5 {
+                    has_overlap = true;
+                }
+            }
+            if !has_overlap {
+                non_overlapping_pairs.push((key, lock));
+            }
+        }
+    }
+
+    non_overlapping_pairs.dedup();
+    println!("Number of non_overlapping_pairs: {:?}", non_overlapping_pairs.len());
 }
 fn part_2(data: &str) {
     let (keys, locks) = parse_data(data);
