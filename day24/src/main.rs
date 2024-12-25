@@ -92,8 +92,8 @@ fn run_gate_setup_with(variables: HashMap<String, bool>, gates_to_run: VecDeque<
 }
 
 fn part_2(data: &str) {
-    let mut variables = parse_data_for_initial_variables(data);
-    let mut gates_to_bind = parse_data_for_unbound_gates(data);
+    let gates_to_bind = parse_data_for_unbound_gates(data);
+    let mut suspicious_outputs = vec![];
 
     // Do we try to brute force this in some way?
     // That seems like a really terrible idea considering we have 44 bits from x 
@@ -108,15 +108,47 @@ fn part_2(data: &str) {
     // [y0] -> ANF_2 /
     //
 
-    let mut visual = vec![];
+    // let mut visual = vec![];
     
+    // for gate in &gates_to_bind {
+    //     visual.push(gate);
+    // }
+    // visual.sort_by_key(|gate| gate.output_name.clone());
+    
+    // for gate in &visual {
+    //     println!("{:?}", gate);
+    // }
+
+
+    // All -> z outputs must be XOR unless its the last one.
     for gate in &gates_to_bind {
-        visual.push(gate);
+        if !gate.output_name.starts_with("z") || gate.output_name.starts_with("z45") {
+            continue
+        }
+        if gate.gate_type != GateType::XOR {
+            suspicious_outputs.push(gate.output_name.clone());
+        }
     }
-    visual.sort_by_key(|gate| gate.output_name.clone());
-    
-    for gate in &visual {
-        println!("{:?}", gate);
+
+    // If gate is internal and not going to z, and also its not connected to the ipnuts
+    // then its gotta be and or or, 
+    for gate in gates_to_bind.iter() {
+        if gate.output_name.starts_with("z") {
+            continue
+        }
+        let mut connected_to_inputs = true;
+        for input in &gate.variables {
+            connected_to_inputs = connected_to_inputs && (input.starts_with("x") || input.starts_with("y"))
+        }
+        if connected_to_inputs {
+            continue;
+        }
+
+        if gate.gate_type != GateType::XOR {
+            continue;
+        }
+
+        suspicious_outputs.push(gate.output_name.clone());
     }
 
     // In a ripple adder, all AND gates must go to an OR gate. Any gates that fail that rule are sus:
@@ -127,13 +159,14 @@ fn part_2(data: &str) {
         }
         for gate2 in &gates_to_bind {
             if gate2.variables.contains(&gate.output_name) {
-                if gate2.gate_type != GateType::OR {
-                    println!("SUSPICIOUS AND to not OR Gate: {:?}", gate);
+                if gate2.gate_type != GateType::OR && !(gate.variables.contains(&"x00".to_string()) && gate.variables.contains(&"y00".to_string())) {
+                    println!("SUSPICIOUS AND to not OR Gate: {:?} {:?}", gate, gate2);
+                    suspicious_outputs.push(gate.output_name.clone());
+
                 }
             }
         }
     }
-    // We find one more sus gate this way with UnboundGate { gate_type: AND, variables: ["x25", "y25"], output_name: "rqf" }
 
     // OR gates do the carry, so they feed into XOR and AND, but never directly into an OR gate
     for gate in &gates_to_bind {
@@ -147,6 +180,7 @@ fn part_2(data: &str) {
             if gate2.variables.contains(&gate.output_name) {
                 if gate2.gate_type == GateType::OR {
                     println!("SUSPICIOUS OR Gate: {:?}", gate);
+                    suspicious_outputs.push(gate.output_name.clone());
                 } else {
                     // It should go to only 1 AND, and only 1 XOR
                     if gate2.gate_type == GateType::AND {
@@ -162,6 +196,17 @@ fn part_2(data: &str) {
         }
         if connected_ands > 1 || connected_xors > 1 {
             println!("SUSPICIOUS OR GATE {:?}, weirdos: {:?}", gate, weirdos);
+            suspicious_outputs.push(gate.output_name.clone());
+        }
+
+        // An OR gate should also only be fed by AND gates
+        for gate2 in &gates_to_bind {
+            if gate.variables.contains(&gate2.output_name) {
+                if gate2.gate_type != GateType::AND {
+                    println!("SUSPICIOUS OR GATE HAS NOT ANDS FEEDING IT {:?}", gate2);
+                    suspicious_outputs.push(gate2.output_name.clone());
+                }
+            }
         }
     }
 
@@ -177,159 +222,18 @@ fn part_2(data: &str) {
             if gate2.variables.contains(&gate.output_name) {
                 if gate2.gate_type != GateType::XOR {
                     println!("SUSPICIOUS AND to not XOR Gate: {:?}", gate);
+                    suspicious_outputs.push(gate.output_name.clone());
                 }
             }
         }
     }
 
-    // If output is to a z then it has to come from an adder, so it should be an XOR
-    // (except for z45! since its just overflow )
-    // So... do we have any gates that output to Z that are not an XOR type?
-    let mut suspicious_gates = vec![];
-    for gate in gates_to_bind.iter() {
-        if gate.output_name.starts_with("z") && gate.gate_type != GateType::XOR && !gate.output_name.starts_with("z45") {
-            suspicious_gates.push(gate);
-            println!("Suspicious output to Z: {:?}", gate);
-        }
-    }
-    // We get 3 gates so far.
-    /*
-    Suspicious output to Z: UnboundGate { gate_type: AND, variables: ["x06", "y06"], output_name: "z06" }
-    Suspicious output to Z: UnboundGate { gate_type: OR, variables: ["gbd", "fjv"], output_name: "z13" }
-    Suspicious output to Z: UnboundGate { gate_type: AND, variables: ["njc", "ngk"], output_name: "z38" }
-    Suspicious output to Z: UnboundGate { gate_type: OR, variables: ["wvm", "dhs"], output_name: "z45" } <-- this is fine though because it's the very last bit!
-    */
-    // If out is NOT to z, then what can be suspicious now? 
-    // https://www.101computing.net/binary-additions-using-logic-gates/
-    // outputs within the circuit should go to either an AND gate or an OR gate
-    // if they're not part of the initial x,y bits that is since those can go to XORs
-    for gate in gates_to_bind.iter() {
-        if !gate.output_name.starts_with("z") && 
-            gate.variables.iter().all(|in_name| !(in_name.starts_with("x") || in_name.starts_with("y")) )
-            && gate.gate_type == GateType::XOR
-        {
-            suspicious_gates.push(gate);
-            println!("Suspicious internal gate not pointing to XOR: {:?}", gate);
-        }
-    }
-    // We get 3 more gates.
-    /*
-        Suspicious internal gate not pointing to XOR: UnboundGate { gate_type: XOR, variables: ["cjt", "sfm"], output_name: "jmq" }
-        Suspicious internal gate not pointing to XOR: UnboundGate { gate_type: XOR, variables: ["nmm", "kwb"], output_name: "gmh" }
-        Suspicious internal gate not pointing to XOR: UnboundGate { gate_type: XOR, variables: ["ngk", "njc"], output_name: "qrh" }
-    */
-    // So that's 6 gates so far that seem sort of weird and likely should be swapped with each other to do some
-    // correction. 
-    // x06, y06 to z06 is just wrong, so where should it go?
-    //  What about jmq? it goes to
-    //   UnboundGate { gate_type: OR, variables: ["fmd", "jmq"], output_name: "qsf" }
-    //   qsf goes to... UnboundGate { gate_type: XOR, variables: ["mms", "qsf"], output_name: "z07" }
-    //   it probably _should_ be going to z06 though because we're carrying probably. So
-    //   let's swap jmq and z06
-    // What about gmh? it goes to
-    //  UnboundGate { gate_type: AND, variables: ["fgr", "gmh"], output_name: "ckd" }
-    //  and ckd goes to... UnboundGate { gate_type: OR, variables: ["ckd", "cqb"], output_name: "dmm" }
-    //  and dmm goes to...  UnboundGate { gate_type: XOR, variables: ["hch", "dmm"], output_name: "z15" }
-    //   which isn't quite right as it's not close enough to be screwy or at least, not yet.
-    //  gmh also goes to
-    //   UnboundGate { gate_type: XOR, variables: ["gmh", "fgr"], output_name: "z14" }
-    //   Which is right next to the other weirdo, z13 so let's consider that our swap
-    //
-    // What about qrh? it goes to
-    //  UnboundGate { gate_type: OR, variables: ["cpg", "qrh"], output_name: "wtp" }
-    //  UnboundGate { gate_type: XOR, variables: ["mpv", "wtp"], output_name: "z39" }
-    //  and that's close to z38! So let's consider swapping those
-    let mut swaps = HashMap::from([
-        (String::from("jmq"), String::from("z06")), (String::from("z06"), String::from("jmq")),
-        (String::from("qrh"), String::from("z38")), (String::from("z38"), String::from("qrh")),
-        (String::from("gmh"), String::from("z13")), (String::from("z13"), String::from("gmh"))
-    ]);
-    let mut fixed_gates_first_pass = vec![];
-    for gate in &mut suspicious_gates {
-        match swaps.get(&gate.output_name) {
-            None => {},
-            Some(to_fix) => {
-                let mut fixed = gate.clone();
-                fixed.output_name = to_fix.clone();
-                swaps.remove(&gate.output_name); // only swap once!
-                fixed_gates_first_pass.push(fixed.clone());
-            }
-        }
-    }
-    println!("{:?}",fixed_gates_first_pass );
-    // Now lets splice those in and see what sort of offness we're getting.
-    for fixed in fixed_gates_first_pass {
-        loop {
-            let gate = gates_to_bind.pop_front().unwrap();
-            if gate.variables == fixed.variables && gate.gate_type == fixed.gate_type {
-                gates_to_bind.push_back(fixed);
-                break;
-            } else {
-                gates_to_bind.push_back(gate);
-            }
-        }
-    }
-
-    // Now compute the slightly more fixed adder
-    let mut variables = parse_data_for_initial_variables(data);
-    let mut bound_gates = vec![];
-    loop {
-        if gates_to_bind.is_empty() {
-            break;
-        }
-
-        let gate_to_bind = gates_to_bind.pop_front().unwrap();
-        match gate_to_bind.bind_with(&variables, &gate_to_bind.output_name) {
-            None => {
-               // Not enough info yet!
-               gates_to_bind.push_back(gate_to_bind);
-            }, 
-            Some(bound_gate) => {
-                variables.insert(bound_gate.output_name.clone(), bound_gate.output());
-                bound_gates.push(bound_gate);
-            }
-        }
-    }
-    let almost_fixed: Vec<bool> = bound_gates.iter()
-        .filter(|gate| gate.output_name.starts_with("z"))
-        .map(|gate| {
-            gate.output()
-        })
-        .collect();
-
-    let original_answer = part_1(&data);
-    let x_input = {
-        let mut x_inputs: Vec<(String, bool)> = variables.keys().filter_map(|key| {
-            if key.starts_with("x") {
-                Some((key.clone(), *variables.get(key).unwrap()))
-            } else {
-                None
-            }
-        }).collect();
-        x_inputs.sort_by_key(|tuple| tuple.0.clone());
-        x_inputs.into_iter().map(|tuple| tuple.1).collect()
-    };
-    let y_input = {
-        let mut y_inputs: Vec<(String, bool)> = variables.keys().filter_map(|key| {
-            if key.starts_with("y") {
-                Some((key.clone(), *variables.get(key).unwrap()))
-            } else {
-                None
-            }
-        }).collect();
-        y_inputs.sort_by_key(|tuple| tuple.0.clone());
-        y_inputs.into_iter().map(|tuple| tuple.1).collect()
-    };
-    let needs_a_swap_answer = bools_to_decimal(&x_input) + bools_to_decimal(&y_input);
-    println!("TAR{:?}", original_answer);
-    println!("OFF{:?}", needs_a_swap_answer);
-    println!("XOR {:?}", original_answer ^  needs_a_swap_answer);
-
-    let answer = vec!["jmq","z06","qrh","z38","gmh","z13",];
-    let mut answer = vec!["rqf","z13","z45","jmq","gmh","qrh","z06","z38"];
-    // gmh,jmq,qrh,rqf,z06,z13,z38,z45
-    answer.sort();
-    println!("{:?}", answer.join(","));
+    // NOT gmh,jmq,qrh,rqf,z06,z13,z38,z45
+    // NOT gmh,jmq,nqp,qrh,rqf,z06,z13,z38
+    // NOT gmh,jmq,qrh,rqf,z06,z13,z25,z38
+    suspicious_outputs.sort();
+    suspicious_outputs.dedup();
+    println!("{:?}", suspicious_outputs.join(","));
 }
 
 fn parse_data_for_initial_variables(data: &str) -> HashMap<String, bool> {
