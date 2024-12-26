@@ -36,6 +36,7 @@ fn part_1(data: &str) {
 fn part_2(data: &str) {
     let (keys, locks) = parse_data(data);
     let _foo = keys.len() == locks.len();
+    // It'd be fun to make a little animation of the locks and keys trying each other out.
 }
 
 fn parse_data(data: &str) -> (Vec<Vec<u8>>, Vec<Vec<u8>>) {
