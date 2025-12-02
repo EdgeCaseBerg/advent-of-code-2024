@@ -15,7 +15,7 @@ fn main() {
         let last_num: usize = last_str.parse().expect("bad number 2");
 
         for id in first_num..=last_num {
-            if is_invalid(&id.to_string()) {
+            if is_invalid_p2(&id.to_string()) {
                 result += id
             }
         }
@@ -23,7 +23,40 @@ fn main() {
     println!("{:?}", result);
 }
 
-fn is_invalid(id: &str) -> bool {
+fn is_invalid_p2(id: &str) -> bool {
+    for window_size in 1..id.len() {
+
+        let chars: Vec<char> = id.to_string().chars().collect();
+        let mut chunk_iter = chars.chunks(window_size);
+        let mut seen = 0;
+        let mut pattern = chunk_iter.next();
+        let mut right = chunk_iter.next();
+        while right.is_some() {
+            if pattern.unwrap().len() != right.unwrap().len() {
+                right = None;
+                seen = 0;
+                continue;
+            }
+            if pattern.unwrap() != right.unwrap() {
+                seen = 0;
+                right = None;    
+                continue;
+            } else {
+                seen += 1
+            }
+            right = chunk_iter.next();
+        }
+        // we saw 1010, but not 101010
+        // println!("{:?} {:?} {:?}", window_size, seen, id);
+        if seen > 0 {
+            return true
+        }
+    }
+    return false
+}
+
+
+fn is_invalid_p1(id: &str) -> bool {
     if (id.len() % 2 == 1) {
         return false
     }
