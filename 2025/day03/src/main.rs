@@ -83,8 +83,7 @@ fn compute_joltage(battery_bank: &str, allowed_batteries_on: usize) -> usize {
 
     let mut combined = String::with_capacity(allowed_batteries_on);
     for battery in enabled_digits {
-        combined.push((battery as u8 + b'0') as char);
+        combined.push((battery + b'0') as char);
     }
-    let final_joltage = combined.parse().expect("joltage did not convert");
-    return final_joltage;
+    combined.parse().expect("joltage did not convert")
 }
