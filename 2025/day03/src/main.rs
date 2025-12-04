@@ -53,36 +53,36 @@ fn compute_joltage_p1(line: &str) -> usize {
     joltage
 }
 
-fn compute_joltage(line: &str, allowed_batteries_on: usize) -> usize {
-    let mut selected_batteries = Vec::with_capacity(allowed_batteries_on);
-    let mut remaining_batteries = line.chars().enumerate();
-    let length = line.chars().count();
+fn compute_joltage(battery_bank: &str, allowed_batteries_on: usize) -> usize {
+    let mut enabled_digits = Vec::with_capacity(allowed_batteries_on);
+    let digits = battery_bank.chars().enumerate();
+    let length = battery_bank.chars().count();
 
-    for (idx, battery_character) in remaining_batteries {
-        let battery = battery_character as i32 - 0x30;
+    for (idx, battery_character) in digits {
+        let battery_value = battery_character as i32 - 0x30;
 
-        while let Some(&top) = selected_batteries.last() {
+        while let Some(&top) = enabled_digits.last() {
 
-            let selected_size = selected_batteries.len();
-            let batteries_remaining_in_bank = (length - idx);
-            let new_battery_has_more_joltage = top < battery;
-            let bank_has_at_least_n_batteries_left = selected_size + batteries_remaining_in_bank > allowed_batteries_on;
+            let enabled_count = enabled_digits.len();
+            let inactive_batteries = length - idx;
+            let should_replace_top_with_battery = top < battery_value;
+            let can_still_fill_bank_to_limit = enabled_count + inactive_batteries > allowed_batteries_on;
 
-            if new_battery_has_more_joltage && bank_has_at_least_n_batteries_left {
-                selected_batteries.pop();
+            if should_replace_top_with_battery && can_still_fill_bank_to_limit {
+                enabled_digits.pop();
             } else {
                 break;
             }
         }
 
-        if selected_batteries.len() < allowed_batteries_on {
-            selected_batteries.push(battery);
+        if enabled_digits.len() < allowed_batteries_on {
+            enabled_digits.push(battery_value);
         }
     }
 
 
     let mut combined = String::with_capacity(allowed_batteries_on);
-    for battery in selected_batteries {
+    for battery in enabled_digits {
         combined.push((battery as u8 + 0x30) as char);
     }
     let final_joltage = combined.parse().expect("joltage did not convert");
