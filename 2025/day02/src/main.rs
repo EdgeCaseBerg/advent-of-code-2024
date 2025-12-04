@@ -15,6 +15,24 @@ fn main() {
         let last_num: usize = last_str.parse().expect("bad number 2");
 
         for id in first_num..=last_num {
+            if is_invalid_p1(&id.to_string()) {
+                result += id
+            }
+        }
+    }
+    println!("{:?}", result);
+    let mut result = 0;
+    for item in raw_data.trim().split(",") {
+        // get the numbers, the problem says no leading 0s but 
+        // just in case, be ready for a string if we need it I guess.
+        let mut iter = item.split("-");
+        let first_str = iter.next().unwrap();
+        let first_num: usize = first_str.parse().expect("bad number 1");
+
+        let last_str = iter.next().unwrap();
+        let last_num: usize = last_str.parse().expect("bad number 2");
+
+        for id in first_num..=last_num {
             if is_invalid_p2(&id.to_string()) {
                 result += id
             }
@@ -29,7 +47,7 @@ fn is_invalid_p2(id: &str) -> bool {
         let chars: Vec<char> = id.to_string().chars().collect();
         let mut chunk_iter = chars.chunks(window_size);
         let mut seen = 0;
-        let mut pattern = chunk_iter.next();
+        let  pattern = chunk_iter.next();
         let mut right = chunk_iter.next();
         while right.is_some() {
             if pattern.unwrap().len() != right.unwrap().len() {
@@ -52,33 +70,36 @@ fn is_invalid_p2(id: &str) -> bool {
             return true
         }
     }
-    return false
+    false
 }
 
 
 fn is_invalid_p1(id: &str) -> bool {
-    if (id.len() % 2 == 1) {
+    if id.len() % 2 == 1 {
         return false
     }
+    
     let window_size = id.len()/2;
     let chars: Vec<char> = id.to_string().chars().collect();
     let mut chunk_iter = chars.chunks(window_size);
     let mut seen = 0;
-    let mut left = chunk_iter.next();
-    let mut right = chunk_iter.next();
+    let  left = chunk_iter.next();
+    let  right = chunk_iter.next();
+
     if right.is_none() {
         return false;
     }
-        if left.unwrap()[0] == '0' || right.unwrap()[0] == '0' || left.unwrap().len() != right.unwrap().len() {
-            return false
-        }
-        if left.unwrap() == right.unwrap() {
-            seen += 1
-        }
+
+    if left.unwrap()[0] == '0' || right.unwrap()[0] == '0' || left.unwrap().len() != right.unwrap().len() {
+        return false
+    }
+    if left.unwrap() == right.unwrap() {
+        seen += 1
+    }
 
     // we saw 1010, but not 101010
     if seen == 1 {
         return true
     }
-    return false
+    false
 }
