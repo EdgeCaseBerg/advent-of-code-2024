@@ -59,16 +59,16 @@ fn compute_joltage(battery_bank: &str, allowed_batteries_on: usize) -> usize {
     let length = battery_bank.chars().count();
 
     for (idx, battery_character) in digits {
-        let battery_value = battery_character as i32 - 0x30;
+        let battery_value = battery_character as u8 - b'0';
 
         while let Some(&top) = enabled_digits.last() {
 
             let enabled_count = enabled_digits.len();
-            let inactive_batteries = length - idx;
-            let should_replace_top_with_battery = top < battery_value;
-            let can_still_fill_bank_to_limit = enabled_count + inactive_batteries > allowed_batteries_on;
+            let remaining_digit_count = length - idx;
+            let battery_provides_better_joltage = top < battery_value;
+            let can_still_fill_bank_to_limit = enabled_count + remaining_digit_count > allowed_batteries_on;
 
-            if should_replace_top_with_battery && can_still_fill_bank_to_limit {
+            if battery_provides_better_joltage && can_still_fill_bank_to_limit {
                 enabled_digits.pop();
             } else {
                 break;
@@ -83,7 +83,7 @@ fn compute_joltage(battery_bank: &str, allowed_batteries_on: usize) -> usize {
 
     let mut combined = String::with_capacity(allowed_batteries_on);
     for battery in enabled_digits {
-        combined.push((battery as u8 + 0x30) as char);
+        combined.push((battery as u8 + b'0') as char);
     }
     let final_joltage = combined.parse().expect("joltage did not convert");
     return final_joltage;
