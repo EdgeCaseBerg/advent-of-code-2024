@@ -88,36 +88,3 @@ fn compute_joltage(battery_bank: &str, allowed_batteries_on: usize) -> usize {
     let final_joltage = combined.parse().expect("joltage did not convert");
     return final_joltage;
 }
-
-// this will probably run to the end of the universe.
-// use itertools::Itertools;
-// fn compute_joltage(line: &str, allowed_batteries_on: usize) -> usize {
-//     let mut joltage = 0;
-//     let mut holes: Vec<bool> = Vec::new();
-//     for (idx, _) in line.chars().enumerate() {
-//         let state = if idx < allowed_batteries_on { true } else { false };
-//         holes.push(state);
-//     }
-//     let len = holes.len();
-//     let mut combinations = holes.into_iter().permutations(len).unique();
-//     println!("{:?}", combinations);
-
-//     while let Some(combination) = combinations.next() {
-//         println!("{:?}", combination);
-//         let mut bank = String::from("");
-//         for (idx, &state) in combination.iter().enumerate() {
-//             if state {
-//                 bank.push_str(&line[idx..idx + 1]);    
-//             }
-//         }
-//         println!("{:?}", bank);
-//         let combination_joltage: usize = bank.parse().expect("Cant convert combination to number");
-//         if combination_joltage > joltage {
-//             joltage = combination_joltage
-//         }
-//         println!("{:?}", combination_joltage);
-//     }
-//     println!("best joltage {:?} {:?}", line, joltage);
-
-//     return joltage;
-// }
