@@ -16,7 +16,7 @@ fn p1(input: &str) {
         }
     }).sum();
     println!("{:?}", joltage);
-}
+}   
 
 fn p2(input: &str) {
     let joltage: usize = input.lines().map(|line| {
@@ -56,62 +56,32 @@ fn compute_joltage_p1(line: &str) -> usize {
 fn compute_joltage(line: &str, allowed_batteries_on: usize) -> usize {
     //  stop being dumb and use a stack.
     let mut selected_batteries = Vec::with_capacity(allowed_batteries_on);
-    let length = line.chars().count();
     let mut remaining_batteries = line.chars().enumerate();
-    while let Some((idx, battery_value)) = remaining_batteries.next() {
-        let battery = battery_value as i32 - 0x30;
+    let length = line.chars().count();
 
-        // Seed value for the stack.
-        if idx < 1 {
-            selected_batteries.push(battery);
-            continue;
-        }
+    for (idx, battery_character) in remaining_batteries {
+        let battery = battery_character as i32 - 0x30;
 
-        // TODO If the top fo the stack is less than the current battery then
-        // we should be able to replace it since it will make a bigger number.
-        // we should be able to do this WHILE the top is less, unless we have
-        // only a few more batteries to go, in which case we'd be better off
-        // just appending it so the number can grow to its maximum size.
-        let top = selected_batteries.pop().expect("The top should never be empty");
-        let remaining_battery_count = length - idx;        
-        let stack_size = selected_batteries.len();
-
-        // this is all wrong ugh. but I know what I want to do its just hard to express it
-        let left_to_check = length - idx;
-        if battery > top && stack_size < allowed_batteries_on {
-            while let Some((_, battery_value)) = remaining_batteries.next() {
-                let battery = battery_value as i32 - 0x30;
-                if battery <= top {
-                    break;
-                }
-                selected_batteries.push(battery);
+        while let Some(&top) = selected_batteries.last() {
+            let selected_size = selected_batteries.iter().count();
+            if top < battery && selected_size + (length - idx) > allowed_batteries_on {
+                selected_batteries.pop();
+            } else {
+                break;
             }
-            selected_batteries.push(battery);
-            continue;
         }
 
-        if battery == top {
-            selected_batteries.push(top);
-            selected_batteries.push(battery);
-            continue
-        }
-
-        // In the case where battery is less than the top
-        if stack_size < allowed_batteries_on {
-            selected_batteries.push(top);
+        if selected_batteries.len() < allowed_batteries_on {
             selected_batteries.push(battery);
         }
     }
 
-    while selected_batteries.len() > allowed_batteries_on {
-        selected_batteries.pop();
-    }
+
     let mut combined = String::with_capacity(allowed_batteries_on);
     for battery in selected_batteries {
         combined.push((battery as u8 + 0x30) as char);
     }
     let final_joltage = combined.parse().expect("joltage did not convert");
-    println!("{:?}", final_joltage);
     return final_joltage;
 }
 
