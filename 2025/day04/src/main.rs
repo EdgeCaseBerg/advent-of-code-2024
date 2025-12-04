@@ -56,4 +56,33 @@ fn count_paper_around_point(matrix: &Vec<Vec<char>>, row: isize, col: isize) -> 
     positions_around_us.iter().filter(|&is_paper| *is_paper).count()
 }
 
-fn p2(_input: &str) {}
+fn p2(input: &str) {
+    let mut matrix: Vec<Vec<char>> = input
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| line.chars().collect())
+        .collect();
+
+    let rows = matrix.len();
+    let cols = matrix.get(0).map(|m| m.len()).unwrap_or(0);
+    let mut result = 0;
+
+    loop {
+        let mut total_removed = 0;
+        for y in 0..rows {
+            for x in 0..cols {
+                if matrix[y][x] == '@' {
+                    if count_paper_around_point(&matrix, y as isize, x as isize) < 4 {
+                        result += 1;
+                        total_removed += 1;
+                        matrix[y][x] = 'x';
+                    }
+                }
+            }
+        }
+        if total_removed == 0 {
+            break;
+        }
+    }
+    println!("{:?}", result);
+}
