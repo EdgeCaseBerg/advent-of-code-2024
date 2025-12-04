@@ -54,7 +54,6 @@ fn compute_joltage_p1(line: &str) -> usize {
 }
 
 fn compute_joltage(line: &str, allowed_batteries_on: usize) -> usize {
-    //  stop being dumb and use a stack.
     let mut selected_batteries = Vec::with_capacity(allowed_batteries_on);
     let mut remaining_batteries = line.chars().enumerate();
     let length = line.chars().count();
@@ -63,8 +62,13 @@ fn compute_joltage(line: &str, allowed_batteries_on: usize) -> usize {
         let battery = battery_character as i32 - 0x30;
 
         while let Some(&top) = selected_batteries.last() {
-            let selected_size = selected_batteries.iter().count();
-            if top < battery && selected_size + (length - idx) > allowed_batteries_on {
+
+            let selected_size = selected_batteries.len();
+            let batteries_remaining_in_bank = (length - idx);
+            let new_battery_has_more_joltage = top < battery;
+            let bank_has_at_least_n_batteries_left = selected_size + batteries_remaining_in_bank > allowed_batteries_on;
+
+            if new_battery_has_more_joltage && bank_has_at_least_n_batteries_left {
                 selected_batteries.pop();
             } else {
                 break;
