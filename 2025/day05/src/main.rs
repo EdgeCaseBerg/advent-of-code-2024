@@ -1,4 +1,5 @@
 use std::fs;
+use std::collections::HashSet;
 
 fn main() {
     let raw_data = fs::read_to_string("./input").expect("bad input data");
@@ -45,47 +46,41 @@ fn p2(raw_data: &str) {
             Range { low, high }
         }).collect();
 
-    let mut ranges: Vec<Range> = vec![];
-    ranges.push(Range { low: rules[0].low, high: rules[0].high });
+    // This _would_ work if we had infinite memory and time.
+    // let mut in_range = HashSet::new();
+    // for rule in rules {
+    //     for i in rule.low..=rule.high {
+    //         in_range.insert(i);
+    //     }
+    // }
+    // println!("{:?}", in_range.len());
 
-    let mut the_rules = rules.clone();
-    while let Some(rule) = the_rules.pop() {
-        for existing_range in ranges.clone() {
-            if existing_range.contains_whole_range(&rule) {
-                continue;
-            }
-
-            if existing_range.contains_low(&rule) {
-                println!("contains_low {:?} {:?}", existing_range, rule);
-                println!("before\n{:?}", ranges);
-                ranges.retain(|r| r.not_equals(&existing_range));
-
-                ranges.push(existing_range.expand_higher(&rule));
-                println!("after\n{:?}\n", ranges);
-                continue;
-            }
-
-            if existing_range.contains_high(&rule) {
-                println!("contains_high {:?} {:?}", existing_range, rule);
-                ranges.retain(|r| r.not_equals(&existing_range));
-                ranges.push(existing_range.expand_lower(&rule));
-                continue;
-            }
-
-            // It's new
-            ranges.push(rule.clone());
-        }
-        println!("{:?}", ranges);
-    }
+    let mut ranges = rules.clone();
     ranges.sort();
-    ranges.dedup();
+    let mut the_rules = rules.clone();
+    the_rules.sort();
+    let mut new_rules = Vec::<Range>::new();
+
+    // For each rule
+    //   expand it to include any ranges in the other rules
+    // deduplicate ranges that should now be the same
+    for rule in &the_rules {
+        let mut new_rule = rule.clone();
+        for range in &ranges {
+            new_rule = new_rule.expand(&ranges);
+        }
+        new_rules.push(new_rule);
+    }
+    println!("{:?}", new_rules);
+    new_rules.sort();
+    new_rules.dedup();
+    println!("{:?}", new_rules);
     
     let mut ids_in_ranges = 0;
-    for range in ranges {
+    for range in new_rules {
         ids_in_ranges += range.high - range.low + 1;
     }
     println!("{:?}", ids_in_ranges);
-    
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Ord, Eq, PartialOrd)]
@@ -116,5 +111,25 @@ impl Range {
 
     fn not_equals(&self, other: &Range) -> bool {
         !(self.low == other.low && self.high == other.high)
+    }
+
+    fn expand(&self, others: &Vec<Range>) -> Range {
+        let mut expanded_self = self.clone();
+        for range in others {
+            if self.contains_whole_range(range) {
+                // self.
+                continue;
+            }
+            if range.contains_whole_range(self) {
+                expanded_self = range.clone();
+            }
+            if self.contains_low(range) {
+                expanded_self = self.expand_higher(range);
+            }
+            if self.contains_high(range) {
+                expanded_self = self.expand_lower(range);
+            }
+        }
+        expanded_self
     }
 }
