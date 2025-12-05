@@ -1,5 +1,4 @@
 use std::fs;
-use std::collections::HashSet;
 
 fn main() {
     let raw_data = fs::read_to_string("./input").expect("bad input data");
@@ -65,16 +64,14 @@ fn p2(raw_data: &str) {
     //   expand it to include any ranges in the other rules
     // deduplicate ranges that should now be the same
     for rule in &the_rules {
-        let mut new_rule = rule.clone();
-        for range in &ranges {
+        let mut new_rule = *rule;
+        for _ in &ranges {
             new_rule = new_rule.expand(&ranges);
         }
         new_rules.push(new_rule);
     }
-    println!("{:?}", new_rules);
     new_rules.sort();
     new_rules.dedup();
-    println!("{:?}", new_rules);
     
     let mut ids_in_ranges = 0;
     for range in new_rules {
@@ -109,19 +106,15 @@ impl Range {
         Range { low: other.low, high: self.high }
     }
 
-    fn not_equals(&self, other: &Range) -> bool {
-        !(self.low == other.low && self.high == other.high)
-    }
-
     fn expand(&self, others: &Vec<Range>) -> Range {
-        let mut expanded_self = self.clone();
+        let mut expanded_self = *self;
         for range in others {
             if self.contains_whole_range(range) {
                 // self.
                 continue;
             }
             if range.contains_whole_range(self) {
-                expanded_self = range.clone();
+                expanded_self = *range;
             }
             if self.contains_low(range) {
                 expanded_self = self.expand_higher(range);
