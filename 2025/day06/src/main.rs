@@ -58,17 +58,13 @@ fn p2(raw_data: &str) {
     let mut total = 0;
     for col in (0..cols).rev() {
         // Most significant digit is at the top, so read top to bottom
-        println!("{:?}", col);
         let mut number = String::with_capacity(rows);
         for row in 0..rows {
-            println!("{:?}", col);
             // Do we have an operand?
             let operand_row = row == rows - 1;
-            println!("{:?} {:?} {:?}", operand_row, number, matrix[row][col]);
             match (matrix[row][col], operand_row) {
                 (' ', true) => {
                     // end of the number we're building.
-                    println!("{:?} r{:?},c{:?}", number, row, col);
                     if number.trim().is_empty() {
                         numbers_in_problem = Vec::new();
                         continue;
